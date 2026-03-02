@@ -23,11 +23,12 @@ Since the script uses the `bpy` module, the simplest way to run it is through Bl
 blender --background --python arkiv_cube_3d/render_cube.py
 ```
 
-### Run via pip-installed bpy
+### Run directly with pip-installed bpy
 
 If the `bpy` package installs successfully in your environment:
 
 ```bash
+pip install bpy
 python arkiv_cube_3d/render_cube.py
 ```
 
