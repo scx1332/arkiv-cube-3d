@@ -4,14 +4,13 @@ Render a 3D orange cube on a white background with nice lighting and Cycles ray 
 
 ## Prerequisites
 
-- Python 3.10+
+- Python 3.11+
 - [Blender](https://www.blender.org/) installed on your machine
-- [Poetry](https://python-poetry.org/) for dependency management
 
 ## Installation
 
 ```bash
-poetry install
+pip install bpy
 ```
 
 ## Usage
@@ -24,13 +23,23 @@ Since the script uses the `bpy` module, the simplest way to run it is through Bl
 blender --background --python arkiv_cube_3d/render_cube.py
 ```
 
-### Run via Poetry (requires `bpy` PyPI package)
+### Run directly with pip-installed bpy
 
 If the `bpy` package installs successfully in your environment:
 
 ```bash
-poetry run render-cube
+pip install bpy
+python arkiv_cube_3d/render_cube.py
 ```
+
+## GitHub Actions
+
+A workflow is included that automatically renders the cube on push/PR to `main`. It:
+
+1. Sets up Python 3.11
+2. Installs Blender and bpy via apt and pip
+3. Runs the render script
+4. Uploads the rendered image as a build artifact
 
 ## Output
 
