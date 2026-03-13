@@ -67,6 +67,86 @@ class WebServerTests(unittest.TestCase):
 
         self.assertEqual(bsdf.inputs.get("Roughness").default_value, 0.75)
 
+    def test_get_active_object_falls_back_to_context_object(self):
+        sentinel = object()
+
+        class Context:
+            object = sentinel
+
+        original_bpy = render_cube.bpy
+        render_cube.bpy = type("Bpy", (), {"context": Context()})()
+        self.addCleanup(setattr, render_cube, "bpy", original_bpy)
+
+        self.assertIs(render_cube.get_active_object(), sentinel)
+
+    def test_create_floor_uses_fallback_active_object_lookup(self):
+        class Socket:
+            def __init__(self):
+                self.default_value = None
+
+        class Inputs(dict):
+            def get(self, name):
+                return super().get(name)
+
+        class Bsdf:
+            def __init__(self):
+                self.inputs = Inputs({"Base Color": Socket(), "Roughness": Socket()})
+
+        class Nodes(dict):
+            def get(self, name):
+                return super().get(name)
+
+        class NodeTree:
+            def __init__(self):
+                self.nodes = Nodes({"Principled BSDF": Bsdf()})
+
+        class Material:
+            def __init__(self):
+                self.use_nodes = False
+                self.node_tree = NodeTree()
+
+        class Materials:
+            def new(self, name):
+                return Material()
+
+        class MeshData:
+            def __init__(self):
+                self.materials = []
+
+        class Floor:
+            def __init__(self):
+                self.name = None
+                self.data = MeshData()
+
+        floor = Floor()
+
+        class Context:
+            object = floor
+
+        class MeshOps:
+            def primitive_plane_add(self, **kwargs):
+                return None
+
+        blender = type(
+            "Bpy",
+            (),
+            {
+                "context": Context(),
+                "ops": type("Ops", (), {"mesh": MeshOps()})(),
+                "data": type("Data", (), {"materials": Materials()})(),
+            },
+        )()
+
+        original_bpy = render_cube.bpy
+        render_cube.bpy = blender
+        self.addCleanup(setattr, render_cube, "bpy", original_bpy)
+
+        created_floor = render_cube.create_floor()
+
+        self.assertIs(created_floor, floor)
+        self.assertEqual(created_floor.name, "Floor")
+        self.assertEqual(len(created_floor.data.materials), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

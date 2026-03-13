@@ -63,11 +63,31 @@ def clear_scene():
     blender.ops.object.delete(use_global=False)
 
 
+def get_active_object():
+    """Return the active object from the current Blender context."""
+    blender = require_bpy()
+    context = blender.context
+
+    for object_ref in (
+        getattr(context, "active_object", None),
+        getattr(context, "object", None),
+        getattr(getattr(getattr(context, "view_layer", None), "objects", None), "active", None),
+    ):
+        if object_ref is not None:
+            return object_ref
+
+    selected_objects = getattr(context, "selected_objects", None)
+    if selected_objects:
+        return selected_objects[-1]
+
+    raise RuntimeError("Blender did not expose an active object after creating one.")
+
+
 def create_floor(params=DEFAULT_RENDER_PARAMETERS):
     """Create a large white floor plane."""
     blender = require_bpy()
     blender.ops.mesh.primitive_plane_add(size=100, location=(0, 0, 0))
-    floor = blender.context.active_object
+    floor = get_active_object()
     floor.name = "Floor"
 
     mat = blender.data.materials.new(name="FloorMaterial")
@@ -94,7 +114,7 @@ def create_boxes(params=DEFAULT_RENDER_PARAMETERS):
 
     for name, loc, size in box_configs:
         blender.ops.mesh.primitive_cube_add(size=size, location=loc)
-        box = blender.context.active_object
+        box = get_active_object()
         box.name = name
 
         mat = blender.data.materials.new(name=f"{name}Material")
@@ -116,21 +136,21 @@ def setup_lighting(params=DEFAULT_RENDER_PARAMETERS):
     """Set up three-point lighting for the scene."""
     blender = require_bpy()
     blender.ops.object.light_add(type="AREA", location=(6, -5, 8))
-    key_light = blender.context.active_object
+    key_light = get_active_object()
     key_light.name = "KeyLight"
     key_light.data.energy = params.key_light_energy
     key_light.data.size = 5
     key_light.data.color = (1.0, 0.95, 0.9)
 
     blender.ops.object.light_add(type="AREA", location=(-5, -3, 5))
-    fill_light = blender.context.active_object
+    fill_light = get_active_object()
     fill_light.name = "FillLight"
     fill_light.data.energy = params.fill_light_energy
     fill_light.data.size = 8
     fill_light.data.color = (0.9, 0.93, 1.0)
 
     blender.ops.object.light_add(type="AREA", location=(-2, 6, 6))
-    rim_light = blender.context.active_object
+    rim_light = get_active_object()
     rim_light.name = "RimLight"
     rim_light.data.energy = params.rim_light_energy
     rim_light.data.size = 4
@@ -141,11 +161,11 @@ def setup_camera():
     """Set up the camera to frame the scene with all boxes."""
     blender = require_bpy()
     blender.ops.object.camera_add(location=(12, -12, 10))
-    camera = blender.context.active_object
+    camera = get_active_object()
     camera.name = "Camera"
 
     blender.ops.object.empty_add(type="PLAIN_AXES", location=(0, 0, 1))
-    target = blender.context.active_object
+    target = get_active_object()
     target.name = "CameraTarget"
 
     constraint = camera.constraints.new(type="TRACK_TO")
