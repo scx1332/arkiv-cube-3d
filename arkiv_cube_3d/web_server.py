@@ -36,6 +36,9 @@ def hex_to_rgba(color_value):
 
 def build_render_parameters(payload, profile="preview"):
     """Build render parameters from the request payload and render profile."""
+    if profile not in {"preview", "full"}:
+        raise ValueError("Profile must be either 'preview' or 'full'.")
+
     base = PREVIEW_RENDER_PARAMETERS if profile == "preview" else FULL_RES_RENDER_PARAMETERS
     return replace(
         base,
@@ -174,7 +177,7 @@ def render_page():
   <div class="layout">
     <section class="panel">
       <h1>Cube material controls</h1>
-      <p class="hint">Adjust the material, world and lighting parameters, then draw a preview or a full-resolution render.</p>
+      <p class="hint">Adjust the material, world, and lighting parameters, then draw a preview or a full-resolution render.</p>
 
       <div class="field">
         <label for="box_color"><span>Color</span><span id="box_color_value">{defaults["box_color"]}</span></label>
@@ -226,7 +229,7 @@ def render_page():
     <section class="viewer">
       <div class="viewer-inner">
         <div class="status" id="status">Ready to render.</div>
-        <img id="rendered_image" alt="Latest render preview">
+        <img id="rendered_image" alt="Latest render preview" style="display: none;">
       </div>
     </section>
   </div>
@@ -267,8 +270,10 @@ def render_page():
         }}
 
         image.src = `${{result.image_url}}?ts=${{Date.now()}}`;
+        image.style.display = "block";
         status.textContent = result.message;
       }} catch (error) {{
+        image.style.display = "none";
         status.textContent = error.message;
       }}
     }}
@@ -314,14 +319,17 @@ class RenderRequestHandler(BaseHTTPRequestHandler):
             self.send_error(HTTPStatus.NOT_FOUND, "Not found.")
             return
 
-        content_length = int(self.headers.get("Content-Length", "0"))
-        payload = json.loads(self.rfile.read(content_length) or b"{}")
-        profile = payload.get("profile", "preview")
-        params = payload.get("params", {})
-
         try:
+            content_length = int(self.headers.get("Content-Length", "0"))
+            payload = json.loads(self.rfile.read(content_length) or b"{}")
+            profile = payload.get("profile", "preview")
+            params = payload.get("params", {})
+
             if not is_bpy_available():
-                raise RuntimeError("bpy is not available in this environment, so rendering cannot start.")
+                raise RuntimeError(
+                    "bpy is not available in this environment, so rendering cannot start. "
+                    "Run the server through Blender or install the bpy package first."
+                )
 
             image_name, render_params = render_with_profile(params, profile)
             response = {
@@ -335,8 +343,8 @@ class RenderRequestHandler(BaseHTTPRequestHandler):
         except (TypeError, ValueError, RuntimeError) as error:
             self.respond_json(HTTPStatus.BAD_REQUEST, {"error": str(error)})
 
-    def log_message(self, format, *args):  # noqa: A003
-        """Keep stdout focused on the explicit server message."""
+    def log_message(self, format_string, *args):
+        """Suppress default HTTP request logging to keep console output clean."""
         return
 
     def respond_json(self, status, payload):

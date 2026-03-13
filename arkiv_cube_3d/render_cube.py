@@ -86,10 +86,10 @@ def create_boxes(params=DEFAULT_RENDER_PARAMETERS):
     boxes = []
     box_configs = [
         ("Box1", (0, 0, 2.0), 2.0),
-        ("Box2", (5, 0, 2.0), 2.0),
-        ("Box3", (0, 5, 2.0), 2.0),
-        ("Box4", (-5, 0, 2.0), 2.0),
-        ("Box5", (0, -5, 2.0), 2.0),
+        ("Box1", (5, 0, 2.0), 2.0),
+        ("Box1", (0, 5, 2.0), 2.0),
+        ("Box1", (-5, 0, 2.0), 2.0),
+        ("Box1", (0, -5, 2.0), 2.0),
     ]
 
     for name, loc, size in box_configs:
