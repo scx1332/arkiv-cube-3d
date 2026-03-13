@@ -143,7 +143,7 @@ class WebServerTests(unittest.TestCase):
         self.assertEqual(created_floor.name, "Floor")
         self.assertEqual(len(created_floor.data.materials), 1)
 
-    def test_create_floor_uses_get_active_object(self):
+    def test_create_floor_delegates_to_get_active_object_helper(self):
         class MeshData:
             def __init__(self):
                 self.materials = []
