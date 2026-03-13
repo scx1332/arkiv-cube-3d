@@ -7,6 +7,46 @@ from arkiv_cube_3d.web_server import build_render_parameters, hex_to_rgba
 
 
 class WebServerTests(unittest.TestCase):
+    def make_floor_test_blender(self, floor):
+        class Socket:
+            def __init__(self):
+                self.default_value = None
+
+        class Inputs(dict):
+            def get(self, name):
+                return super().get(name)
+
+        class Bsdf:
+            def __init__(self):
+                self.inputs = Inputs({"Base Color": Socket(), "Roughness": Socket()})
+
+        class Nodes(dict):
+            def get(self, name):
+                return super().get(name)
+
+        class NodeTree:
+            def __init__(self):
+                self.nodes = Nodes({"Principled BSDF": Bsdf()})
+
+        class Material:
+            def __init__(self):
+                self.use_nodes = False
+                self.node_tree = NodeTree()
+
+        class Materials:
+            def new(self, name):
+                return Material()
+
+        return type(
+            "Bpy",
+            (),
+            {
+                "context": type("Context", (), {"object": floor})(),
+                "ops": type("Ops", (), {"mesh": type("MeshOps", (), {"primitive_plane_add": lambda self, **kwargs: None})()})(),
+                "data": type("Data", (), {"materials": Materials()})(),
+            },
+        )()
+
     def test_hex_to_rgba_converts_html_color(self):
         self.assertEqual(hex_to_rgba("#cc5a00"), (0.8, 0.35294117647058826, 0.0, 1.0))
 
@@ -81,35 +121,6 @@ class WebServerTests(unittest.TestCase):
         self.assertIs(render_cube.get_active_object(), sentinel)
 
     def test_create_floor_uses_fallback_active_object_lookup(self):
-        class Socket:
-            def __init__(self):
-                self.default_value = None
-
-        class Inputs(dict):
-            def get(self, name):
-                return super().get(name)
-
-        class Bsdf:
-            def __init__(self):
-                self.inputs = Inputs({"Base Color": Socket(), "Roughness": Socket()})
-
-        class Nodes(dict):
-            def get(self, name):
-                return super().get(name)
-
-        class NodeTree:
-            def __init__(self):
-                self.nodes = Nodes({"Principled BSDF": Bsdf()})
-
-        class Material:
-            def __init__(self):
-                self.use_nodes = False
-                self.node_tree = NodeTree()
-
-        class Materials:
-            def new(self, name):
-                return Material()
-
         class MeshData:
             def __init__(self):
                 self.materials = []
@@ -120,23 +131,7 @@ class WebServerTests(unittest.TestCase):
                 self.data = MeshData()
 
         floor = Floor()
-
-        class Context:
-            object = floor
-
-        class MeshOps:
-            def primitive_plane_add(self, **kwargs):
-                return None
-
-        blender = type(
-            "Bpy",
-            (),
-            {
-                "context": Context(),
-                "ops": type("Ops", (), {"mesh": MeshOps()})(),
-                "data": type("Data", (), {"materials": Materials()})(),
-            },
-        )()
+        blender = self.make_floor_test_blender(floor)
 
         original_bpy = render_cube.bpy
         render_cube.bpy = blender
@@ -149,50 +144,12 @@ class WebServerTests(unittest.TestCase):
         self.assertEqual(len(created_floor.data.materials), 1)
 
     def test_create_floor_uses_get_active_object(self):
-        class Socket:
-            def __init__(self):
-                self.default_value = None
-
-        class Inputs(dict):
-            def get(self, name):
-                return super().get(name)
-
-        class Bsdf:
-            def __init__(self):
-                self.inputs = Inputs({"Base Color": Socket(), "Roughness": Socket()})
-
-        class Nodes(dict):
-            def get(self, name):
-                return super().get(name)
-
-        class NodeTree:
-            def __init__(self):
-                self.nodes = Nodes({"Principled BSDF": Bsdf()})
-
-        class Material:
-            def __init__(self):
-                self.use_nodes = False
-                self.node_tree = NodeTree()
-
-        class Materials:
-            def new(self, name):
-                return Material()
-
         class MeshData:
             def __init__(self):
                 self.materials = []
 
         floor = type("Floor", (), {"name": None, "data": MeshData()})()
-
-        blender = type(
-            "Bpy",
-            (),
-            {
-                "context": object(),
-                "ops": type("Ops", (), {"mesh": type("MeshOps", (), {"primitive_plane_add": lambda self, **kwargs: None})()})(),
-                "data": type("Data", (), {"materials": Materials()})(),
-            },
-        )()
+        blender = self.make_floor_test_blender(floor)
 
         original_bpy = render_cube.bpy
         render_cube.bpy = blender
