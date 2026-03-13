@@ -1,4 +1,5 @@
 import http.client
+import json
 from pathlib import Path
 import tempfile
 import threading
@@ -71,6 +72,44 @@ class WebServerTests(unittest.TestCase):
         render_cube.set_material_input(bsdf, ["Specular", "Roughness"], 0.75)
 
         self.assertEqual(bsdf.inputs.get("Roughness").default_value, 0.75)
+
+    def test_render_saves_blend_scene_next_to_image(self):
+        class WmOps:
+            def __init__(self):
+                self.saved_paths = []
+
+            def save_as_mainfile(self, *, filepath):
+                self.saved_paths.append(filepath)
+
+        class RenderOps:
+            def __init__(self):
+                self.write_still_calls = []
+
+            def render(self, *, write_still):
+                self.write_still_calls.append(write_still)
+
+        blender = type(
+            "Blender",
+            (),
+            {
+                "context": type(
+                    "Context",
+                    (),
+                    {"scene": type("Scene", (), {"render": type("Render", (), {"filepath": None})()})()},
+                )(),
+                "ops": type("Ops", (), {"wm": WmOps(), "render": RenderOps()})(),
+            },
+        )()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = Path(temp_dir) / "renders" / "preview.png"
+            with patch.object(render_cube, "bpy", blender):
+                result = render_cube.render(output_path=str(output_path))
+
+        self.assertEqual(result, str(output_path))
+        self.assertEqual(blender.context.scene.render.filepath, str(output_path))
+        self.assertEqual(blender.ops.wm.saved_paths, [str(output_path.with_suffix(".blend"))])
+        self.assertEqual(blender.ops.render.write_still_calls, [True])
 
     def test_clear_scene_removes_unused_blender_data_blocks(self):
         class DataCollection(list):
@@ -157,6 +196,78 @@ class WebServerTests(unittest.TestCase):
                         server.server_close()
                     if thread is not None:
                         thread.join()
+
+    def test_blend_file_with_cache_busting_query_is_served(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            render_dir = Path(temp_dir)
+            blend_name = "preview-test.blend"
+            blend_content = b"blend-bytes"
+            (render_dir / blend_name).write_bytes(blend_content)
+
+            with patch("arkiv_cube_3d.web_server.RENDER_OUTPUT_DIR", render_dir):
+                server = None
+                thread = None
+                connection = None
+                try:
+                    from http.server import ThreadingHTTPServer
+
+                    server = ThreadingHTTPServer(("127.0.0.1", 0), RenderRequestHandler)
+                    thread = threading.Thread(target=server.serve_forever)
+                    thread.start()
+
+                    connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
+                    connection.request("GET", f"/renders/{blend_name}?ts=123")
+                    response = connection.getresponse()
+
+                    self.assertEqual(response.status, 200)
+                    self.assertEqual(response.getheader("Content-Type"), "application/octet-stream")
+                    self.assertEqual(response.read(), blend_content)
+                finally:
+                    if connection is not None:
+                        connection.close()
+                    if server is not None:
+                        server.shutdown()
+                        server.server_close()
+                    if thread is not None:
+                        thread.join()
+
+    @patch("arkiv_cube_3d.web_server.render_with_profile")
+    @patch("arkiv_cube_3d.web_server.is_bpy_available", return_value=True)
+    def test_render_endpoint_returns_blend_url(self, is_bpy_available, render_with_profile):
+        render_with_profile.return_value = ("preview-test.png", "preview-test.blend", PREVIEW_RENDER_PARAMETERS)
+
+        server = None
+        thread = None
+        connection = None
+        try:
+            from http.server import ThreadingHTTPServer
+
+            server = ThreadingHTTPServer(("127.0.0.1", 0), RenderRequestHandler)
+            thread = threading.Thread(target=server.serve_forever)
+            thread.start()
+
+            connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
+            connection.request(
+                "POST",
+                "/api/render",
+                body=json.dumps({"profile": "preview", "params": {}}),
+                headers={"Content-Type": "application/json"},
+            )
+            response = connection.getresponse()
+            payload = json.loads(response.read())
+
+            self.assertEqual(response.status, 200)
+            self.assertEqual(payload["image_url"], "/renders/preview-test.png")
+            self.assertEqual(payload["blend_url"], "/renders/preview-test.blend")
+            render_with_profile.assert_called_once_with({}, "preview")
+        finally:
+            if connection is not None:
+                connection.close()
+            if server is not None:
+                server.shutdown()
+                server.server_close()
+            if thread is not None:
+                thread.join()
 
 
 if __name__ == "__main__":
