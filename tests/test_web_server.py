@@ -72,6 +72,58 @@ class WebServerTests(unittest.TestCase):
 
         self.assertEqual(bsdf.inputs.get("Roughness").default_value, 0.75)
 
+    def test_clear_scene_removes_unused_blender_data_blocks(self):
+        class DataCollection(list):
+            def __init__(self, items):
+                super().__init__(items)
+                self.removed = []
+
+            def remove(self, item):
+                self.removed.append(item.name)
+                super().remove(item)
+
+        class DataBlock:
+            def __init__(self, name, users):
+                self.name = name
+                self.users = users
+
+        class ObjectOps:
+            def __init__(self):
+                self.select_all_calls = []
+                self.delete_calls = []
+
+            def select_all(self, *, action):
+                self.select_all_calls.append(action)
+
+            def delete(self, *, use_global):
+                self.delete_calls.append(use_global)
+
+        class Blender:
+            def __init__(self):
+                self.ops = type("Ops", (), {"object": ObjectOps()})()
+                self.data = type(
+                    "Data",
+                    (),
+                    {
+                        "meshes": DataCollection([DataBlock("unused_mesh", 0), DataBlock("used_mesh", 1)]),
+                        "materials": DataCollection([DataBlock("unused_material", 0), DataBlock("used_material", 2)]),
+                        "lights": DataCollection([DataBlock("unused_light", 0), DataBlock("used_light", 1)]),
+                        "cameras": DataCollection([DataBlock("unused_camera", 0), DataBlock("used_camera", 1)]),
+                    },
+                )()
+
+        blender = Blender()
+
+        with patch.object(render_cube, "bpy", blender):
+            render_cube.clear_scene()
+
+        self.assertEqual(blender.ops.object.select_all_calls, ["SELECT"])
+        self.assertEqual(blender.ops.object.delete_calls, [False])
+        self.assertEqual(blender.data.meshes.removed, ["unused_mesh"])
+        self.assertEqual(blender.data.materials.removed, ["unused_material"])
+        self.assertEqual(blender.data.lights.removed, ["unused_light"])
+        self.assertEqual(blender.data.cameras.removed, ["unused_camera"])
+
     def test_render_file_with_cache_busting_query_is_served(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             render_dir = Path(temp_dir)
