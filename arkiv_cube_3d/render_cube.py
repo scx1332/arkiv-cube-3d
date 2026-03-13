@@ -19,10 +19,10 @@ class RenderParameters:
     box_specular: float = 0.5
     box_emission_strength: float = 0.0
     floor_roughness: float = 0.5
-    world_strength: float = 1.0
-    key_light_energy: float = 400.0
-    fill_light_energy: float = 150.0
-    rim_light_energy: float = 200.0
+    world_strength: float = 0.1
+    key_light_energy: float = 600.0
+    fill_light_energy: float = 50.0
+    rim_light_energy: float = 100.0
     samples: int = 128
     resolution_x: int = 600
     resolution_y: int = 400
@@ -30,7 +30,7 @@ class RenderParameters:
 
 DEFAULT_RENDER_PARAMETERS = RenderParameters()
 PREVIEW_RENDER_PARAMETERS = replace(DEFAULT_RENDER_PARAMETERS, samples=32, resolution_x=600, resolution_y=400)
-FULL_RES_RENDER_PARAMETERS = replace(DEFAULT_RENDER_PARAMETERS, resolution_x=1920, resolution_y=1080)
+FULL_RES_RENDER_PARAMETERS = replace(DEFAULT_RENDER_PARAMETERS, resolution_x=2000, resolution_y=1500)
 
 
 def is_bpy_available():
@@ -200,7 +200,7 @@ def setup_lighting(params=DEFAULT_RENDER_PARAMETERS):
     # --- Key Light ---
     key_data = blender.data.lights.new(name="KeyLight", type="AREA")
     key_data.energy = params.key_light_energy
-    key_data.size = 5
+    key_data.size = 1.5
     key_data.color = (1.0, 0.95, 0.9)
 
     key_light = blender.data.objects.new(name="KeyLight", object_data=key_data)
@@ -210,7 +210,7 @@ def setup_lighting(params=DEFAULT_RENDER_PARAMETERS):
     # --- Fill Light ---
     fill_data = blender.data.lights.new(name="FillLight", type="AREA")
     fill_data.energy = params.fill_light_energy
-    fill_data.size = 8
+    fill_data.size = 4.0
     fill_data.color = (0.9, 0.93, 1.0)
 
     fill_light = blender.data.objects.new(name="FillLight", object_data=fill_data)
