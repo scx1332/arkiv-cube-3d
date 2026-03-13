@@ -80,6 +80,7 @@ def get_active_object():
 
     selected_objects = getattr(context, "selected_objects", None)
     if selected_objects:
+        # Newly created Blender objects are typically appended to the selection.
         return selected_objects[-1]
 
     raise RuntimeError("Blender did not expose an active object after creating one.")
