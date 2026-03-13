@@ -56,11 +56,22 @@ def set_material_input(bsdf, names, value):
             return
 
 
+def remove_unused_data_blocks(collection):
+    """Remove orphaned Blender data blocks from a collection."""
+    for item in tuple(collection):
+        if item.users == 0:
+            collection.remove(item)
+
+
 def clear_scene():
-    """Remove all default objects from the scene."""
+    """Remove all default objects and orphaned data from the scene."""
     blender = require_bpy()
     blender.ops.object.select_all(action="SELECT")
     blender.ops.object.delete(use_global=False)
+    remove_unused_data_blocks(blender.data.meshes)
+    remove_unused_data_blocks(blender.data.materials)
+    remove_unused_data_blocks(blender.data.lights)
+    remove_unused_data_blocks(blender.data.cameras)
 
 
 def create_floor(params=DEFAULT_RENDER_PARAMETERS):
