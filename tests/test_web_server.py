@@ -259,6 +259,7 @@ class WebServerTests(unittest.TestCase):
             self.assertEqual(response.status, 200)
             self.assertEqual(payload["image_url"], "/renders/preview-test.png")
             self.assertEqual(payload["blend_url"], "/renders/preview-test.blend")
+            render_with_profile.assert_called_once_with({}, "preview")
         finally:
             if connection is not None:
                 connection.close()
