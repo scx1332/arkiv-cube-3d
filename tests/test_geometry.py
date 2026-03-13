@@ -19,7 +19,7 @@ class GeometryTests(unittest.TestCase):
         self.assertEqual(faces, [(0, 1, 2, 3)])
 
     def test_create_box_geometry_returns_cube_vertices_and_faces(self):
-        verts, faces = create_box_geometry(2.0)
+        verts, faces = create_box_geometry(1.9)
 
         self.assertEqual(
             verts,

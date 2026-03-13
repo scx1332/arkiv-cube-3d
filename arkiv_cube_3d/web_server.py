@@ -281,7 +281,6 @@ def render_page():
 
         image.src = `${{result.image_url}}?ts=${{Date.now()}}`;
         image.style.display = "block";
-        blendDownload.href = `${result.blend_url}?ts=${Date.now()}`;
         blendDownload.style.display = "inline-block";
         status.textContent = result.message;
       }} catch (error) {{

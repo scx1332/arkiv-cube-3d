@@ -1,16 +1,18 @@
 """Pure geometry helpers for Blender mesh construction."""
 
+
+BOX_DEFAULT_SIZE = 1.9
 BOX_CONFIGS = [
-    ("Box_Center", (0, -5, -1.0), 2.0),
-    ("Box_East", (0, -2.5, -0.5), 2.0),
-    ("Box_North", (0, 0, 0.0), 2.0),
-    ("Box_West", (0, 2.5, 0.5), 2.0),
-    ("Box_South", (0, 5, 1.0), 2.0),
-    ("Box_Center", (-2.5, -5, 1.0), 2.0),
-    ("Box_East", (-2.5, -2.5, 1.0), 2.0),
-    ("Box_North", (-2.5, 0, 1.0), 2.0),
-    ("Box_West", (-2.5, 2.5, 1.0), 2.0),
-    ("Box_South", (-2.5, 5, 1.0), 2.0),
+    ("Box_",(0, 0-10, 1.0), BOX_DEFAULT_SIZE),
+    ("Box_",(0, 4-10, 1.0), BOX_DEFAULT_SIZE),
+    ("Box_",(0, 8-10, 1.0), BOX_DEFAULT_SIZE),
+    ("Box_",(0, 12-10, 1.0), BOX_DEFAULT_SIZE),
+    ("Box_",(0, 16-10, 1.0), BOX_DEFAULT_SIZE),
+    ("Box_",(0-10, 0, 1.0), BOX_DEFAULT_SIZE),
+    ("Box_",(4-10, 0, 1.0), BOX_DEFAULT_SIZE),
+    ("Box_",(8-10, 0, 1.0), BOX_DEFAULT_SIZE),
+    ("Box_",(12-10, 0, 1.0), BOX_DEFAULT_SIZE),
+    ("Box_",(16-10, 0, 1.0), BOX_DEFAULT_SIZE),
 ]
 
 
