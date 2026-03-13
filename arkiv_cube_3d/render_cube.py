@@ -84,7 +84,10 @@ def get_active_object():
         # Blender does not expose the new object through active_object/object.
         return selected_objects[-1]
 
-    raise RuntimeError("Blender did not expose an active object after creating one.")
+    raise RuntimeError(
+        "Blender did not expose an active object after creating one via "
+        "context.active_object, context.object, view_layer.objects.active, or selected_objects."
+    )
 
 
 def create_floor(params=DEFAULT_RENDER_PARAMETERS):

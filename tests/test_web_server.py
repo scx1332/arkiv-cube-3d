@@ -7,7 +7,7 @@ from arkiv_cube_3d.web_server import build_render_parameters, hex_to_rgba
 
 
 class WebServerTests(unittest.TestCase):
-    def make_floor_test_blender(self, floor):
+    def create_test_blender_environment(self, floor):
         class Socket:
             def __init__(self):
                 self.default_value = None
@@ -131,7 +131,7 @@ class WebServerTests(unittest.TestCase):
                 self.data = MeshData()
 
         floor = Floor()
-        blender = self.make_floor_test_blender(floor)
+        blender = self.create_test_blender_environment(floor)
 
         original_bpy = render_cube.bpy
         render_cube.bpy = blender
@@ -149,7 +149,7 @@ class WebServerTests(unittest.TestCase):
                 self.materials = []
 
         floor = type("Floor", (), {"name": None, "data": MeshData()})()
-        blender = self.make_floor_test_blender(floor)
+        blender = self.create_test_blender_environment(floor)
 
         original_bpy = render_cube.bpy
         render_cube.bpy = blender
@@ -160,6 +160,22 @@ class WebServerTests(unittest.TestCase):
 
         get_active_object.assert_called_once_with()
         self.assertIs(created_floor, floor)
+
+    def test_create_floor_propagates_active_object_lookup_error(self):
+        class MeshData:
+            def __init__(self):
+                self.materials = []
+
+        floor = type("Floor", (), {"name": None, "data": MeshData()})()
+        blender = self.create_test_blender_environment(floor)
+
+        original_bpy = render_cube.bpy
+        render_cube.bpy = blender
+        self.addCleanup(setattr, render_cube, "bpy", original_bpy)
+
+        with patch("arkiv_cube_3d.render_cube.get_active_object", side_effect=RuntimeError("missing object")):
+            with self.assertRaisesRegex(RuntimeError, "missing object"):
+                render_cube.create_floor()
 
 
 if __name__ == "__main__":
