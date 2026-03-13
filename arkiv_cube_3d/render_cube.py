@@ -146,7 +146,7 @@ def setup_render_settings():
 def render(output_path=None):
     """Render the scene to an image file."""
     if output_path is None:
-        output_path = os.path.join(os.getcwd(), "orange_cube.png")
+        output_path = os.path.join(os.getcwd(), "scene_render.png")
 
     bpy.context.scene.render.filepath = output_path
     bpy.ops.render.render(write_still=True)

@@ -1,4 +1,4 @@
-name: Render Cube
+name: Render Scene
 
 on:
   push:
@@ -31,12 +31,12 @@ jobs:
           pip install --upgrade pip
           pip install bpy
 
-      - name: Render the cube
+      - name: Render the scene
         run: |
           python arkiv_cube_3d/render_cube.py
 
       - name: Upload rendered image
         uses: actions/upload-artifact@v4
         with:
-          name: orange-cube-render
-          path: orange_cube.png
+          name: scene-render
+          path: scene_render.png

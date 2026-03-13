@@ -1,7 +1,7 @@
 [project]
 name = "arkiv-cube-3d"
 version = "0.1.0"
-description = "Render a 3D orange cube using Blender"
+description = "Render 3D boxes on a white floor for lighting tests using Blender"
 authors = [
     {name = "arkiv"}
 ]
