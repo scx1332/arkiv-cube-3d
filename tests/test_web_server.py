@@ -7,11 +7,57 @@ import unittest
 from unittest.mock import patch
 
 import arkiv_cube_3d.render_cube as render_cube
+from arkiv_cube_3d.geometry import BOX_CONFIGS, create_box_geometry, create_floor_geometry
 from arkiv_cube_3d.render_cube import FULL_RES_RENDER_PARAMETERS, PREVIEW_RENDER_PARAMETERS
 from arkiv_cube_3d.web_server import RenderRequestHandler, build_render_parameters, hex_to_rgba
 
 
 class WebServerTests(unittest.TestCase):
+    def test_create_floor_geometry_returns_plane_vertices_and_face(self):
+        verts, faces = create_floor_geometry()
+
+        self.assertEqual(
+            verts,
+            [
+                (-50.0, -50.0, 0.0),
+                (50.0, -50.0, 0.0),
+                (50.0, 50.0, 0.0),
+                (-50.0, 50.0, 0.0),
+            ],
+        )
+        self.assertEqual(faces, [(0, 1, 2, 3)])
+
+    def test_create_box_geometry_returns_cube_vertices_and_faces(self):
+        verts, faces = create_box_geometry(2.0)
+
+        self.assertEqual(
+            verts,
+            [
+                (-1.0, -1.0, -1.0),
+                (1.0, -1.0, -1.0),
+                (1.0, 1.0, -1.0),
+                (-1.0, 1.0, -1.0),
+                (-1.0, -1.0, 1.0),
+                (1.0, -1.0, 1.0),
+                (1.0, 1.0, 1.0),
+                (-1.0, 1.0, 1.0),
+            ],
+        )
+        self.assertEqual(
+            faces,
+            [
+                (0, 1, 2, 3),
+                (7, 6, 5, 4),
+                (0, 1, 5, 4),
+                (1, 2, 6, 5),
+                (2, 3, 7, 6),
+                (3, 0, 4, 7),
+            ],
+        )
+
+    def test_box_configs_define_five_boxes(self):
+        self.assertEqual(len(BOX_CONFIGS), 5)
+
     def test_hex_to_rgba_converts_html_color(self):
         self.assertEqual(hex_to_rgba("#cc5a00"), (0.8, 0.35294117647058826, 0.0, 1.0))
 
