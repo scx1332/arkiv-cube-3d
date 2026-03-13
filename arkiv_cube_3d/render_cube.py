@@ -31,16 +31,11 @@ def create_boxes():
     boxes = []
     box_configs = [
         # (name, location, size, color, roughness)
-        # Box sitting on floor
-        ("Box1", (0, 0, 1.0), 2.0, (0.8, 0.35, 0.0, 1.0), 0.4),
-        # Box half buried in floor
-        ("Box2", (-4, 3, -0.5), 1.5, (0.2, 0.5, 0.8, 1.0), 0.3),
-        # Box floating mid-air
-        ("Box3", (3, 4, 3.0), 1.0, (0.8, 0.2, 0.2, 1.0), 0.5),
-        # Box floating high
-        ("Box4", (5, -2, 5.0), 1.2, (0.2, 0.7, 0.3, 1.0), 0.4),
-        # Box mostly buried in floor
-        ("Box5", (-3, -4, -0.8), 1.8, (0.6, 0.3, 0.7, 1.0), 0.35),
+        ("Box1", (0, 0, 2.0), 2.0, (0.8, 0.35, 0.0, 1.0), 0.4),
+        ("Box1", (5, 0, 2.0), 2.0, (0.8, 0.35, 0.0, 1.0), 0.4),
+        ("Box1", (0, 5, 2.0), 2.0, (0.8, 0.35, 0.0, 1.0), 0.4),
+        ("Box1", (-5, 0, 2.0), 2.0, (0.8, 0.35, 0.0, 1.0), 0.4),
+        ("Box1", (0, -5, 2.0), 2.0, (0.8, 0.35, 0.0, 1.0), 0.4),
     ]
 
     for name, loc, size, color, roughness in box_configs:
@@ -136,8 +131,8 @@ def setup_render_settings():
     scene.cycles.samples = 128
     scene.cycles.use_denoising = True
 
-    scene.render.resolution_x = 1920
-    scene.render.resolution_y = 1080
+    scene.render.resolution_x = 600
+    scene.render.resolution_y = 400
     scene.render.resolution_percentage = 100
     scene.render.image_settings.file_format = "PNG"
     scene.render.image_settings.color_mode = "RGBA"
