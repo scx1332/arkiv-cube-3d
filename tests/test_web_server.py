@@ -1,8 +1,13 @@
+import http.client
+from pathlib import Path
+import tempfile
+import threading
 import unittest
+from unittest.mock import patch
 
 import arkiv_cube_3d.render_cube as render_cube
 from arkiv_cube_3d.render_cube import FULL_RES_RENDER_PARAMETERS, PREVIEW_RENDER_PARAMETERS
-from arkiv_cube_3d.web_server import build_render_parameters, hex_to_rgba
+from arkiv_cube_3d.web_server import RenderRequestHandler, build_render_parameters, hex_to_rgba
 
 
 class WebServerTests(unittest.TestCase):
@@ -66,6 +71,40 @@ class WebServerTests(unittest.TestCase):
         render_cube.set_material_input(bsdf, ["Specular", "Roughness"], 0.75)
 
         self.assertEqual(bsdf.inputs.get("Roughness").default_value, 0.75)
+
+    def test_render_file_with_cache_busting_query_is_served(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            render_dir = Path(temp_dir)
+            image_name = "preview-test.png"
+            image_content = b"png-bytes"
+            (render_dir / image_name).write_bytes(image_content)
+
+            with patch("arkiv_cube_3d.web_server.RENDER_OUTPUT_DIR", render_dir):
+                server = None
+                thread = None
+                connection = None
+                try:
+                    from http.server import ThreadingHTTPServer
+
+                    server = ThreadingHTTPServer(("127.0.0.1", 0), RenderRequestHandler)
+                    thread = threading.Thread(target=server.serve_forever)
+                    thread.start()
+
+                    connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
+                    connection.request("GET", f"/renders/{image_name}?ts=123")
+                    response = connection.getresponse()
+
+                    self.assertEqual(response.status, 200)
+                    self.assertEqual(response.getheader("Content-Type"), "image/png")
+                    self.assertEqual(response.read(), image_content)
+                finally:
+                    if connection is not None:
+                        connection.close()
+                    if server is not None:
+                        server.shutdown()
+                        server.server_close()
+                    if thread is not None:
+                        thread.join()
 
 
 if __name__ == "__main__":

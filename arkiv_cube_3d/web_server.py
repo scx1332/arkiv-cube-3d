@@ -6,6 +6,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
 import time
+from urllib.parse import urlsplit
 
 from .render_cube import (
     DEFAULT_RENDER_PARAMETERS,
@@ -289,7 +290,9 @@ class RenderRequestHandler(BaseHTTPRequestHandler):
     """Serve the control panel and render endpoints."""
 
     def do_GET(self):
-        if self.path in {"/", "/index.html"}:
+        request_path = urlsplit(self.path).path
+
+        if request_path in {"/", "/index.html"}:
             page = render_page().encode("utf-8")
             self.send_response(HTTPStatus.OK)
             self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -298,8 +301,8 @@ class RenderRequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(page)
             return
 
-        if self.path.startswith("/renders/"):
-            image_path = (RENDER_OUTPUT_DIR / self.path.removeprefix("/renders/")).resolve()
+        if request_path.startswith("/renders/"):
+            image_path = (RENDER_OUTPUT_DIR / request_path.removeprefix("/renders/")).resolve()
             if image_path.parent != RENDER_OUTPUT_DIR.resolve() or not image_path.exists():
                 self.send_error(HTTPStatus.NOT_FOUND, "Render not found.")
                 return
@@ -315,7 +318,7 @@ class RenderRequestHandler(BaseHTTPRequestHandler):
         self.send_error(HTTPStatus.NOT_FOUND, "Not found.")
 
     def do_POST(self):
-        if self.path != "/api/render":
+        if urlsplit(self.path).path != "/api/render":
             self.send_error(HTTPStatus.NOT_FOUND, "Not found.")
             return
 
