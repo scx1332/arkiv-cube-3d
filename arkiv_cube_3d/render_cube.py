@@ -64,14 +64,24 @@ def remove_unused_data_blocks(collection):
 
 
 def clear_scene():
-    """Remove all default objects and orphaned data from the scene."""
+    """Remove all objects and data directly without relying on UI context."""
     blender = require_bpy()
-    blender.ops.object.select_all(action="SELECT")
-    blender.ops.object.delete(use_global=False)
-    remove_unused_data_blocks(blender.data.meshes)
-    remove_unused_data_blocks(blender.data.materials)
-    remove_unused_data_blocks(blender.data.lights)
-    remove_unused_data_blocks(blender.data.cameras)
+
+    # 1. Delete all objects from the scene directly
+    for obj in list(blender.data.objects):
+        blender.data.objects.remove(obj, do_unlink=True)
+
+    # 2. Nuke the underlying data blocks since we rebuild them every run
+    collections_to_clear = [
+        blender.data.meshes,
+        blender.data.materials,
+        blender.data.lights,
+        blender.data.cameras,
+    ]
+
+    for collection in collections_to_clear:
+        for block in list(collection):
+            collection.remove(block, do_unlink=True)
 
 
 def create_floor(params=DEFAULT_RENDER_PARAMETERS):
