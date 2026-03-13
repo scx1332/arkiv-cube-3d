@@ -1,4 +1,4 @@
-"""Render an orange cube on a white background with lighting and ray tracing using Blender."""
+"""Render five square boxes on a huge white floor for lighting tests using Blender."""
 
 import bpy
 import os
@@ -10,67 +10,88 @@ def clear_scene():
     bpy.ops.object.delete(use_global=False)
 
 
-def create_cube():
-    """Create an orange cube and return the object."""
-    bpy.ops.mesh.primitive_cube_add(size=2, location=(0, 0, 0))
-    cube = bpy.context.active_object
-    cube.name = "OrangeCube"
-
-    # Create orange material
-    mat = bpy.data.materials.new(name="OrangeMaterial")
+def create_white_material(name):
+    """Create and return a plain white material."""
+    mat = bpy.data.materials.new(name=name)
     mat.use_nodes = True
     bsdf = mat.node_tree.nodes.get("Principled BSDF")
-    # Orange color (R, G, B, A)
-    bsdf.inputs["Base Color"].default_value = (0.8, 0.35, 0.0, 1.0)
-    bsdf.inputs["Roughness"].default_value = 0.4
+    bsdf.inputs["Base Color"].default_value = (1.0, 1.0, 1.0, 1.0)
+    bsdf.inputs["Roughness"].default_value = 0.8
     bsdf.inputs["Metallic"].default_value = 0.0
+    return mat
 
-    cube.data.materials.append(mat)
 
-    # Slight rotation for a more interesting angle
-    cube.rotation_euler = (0.5, 0.0, 0.8)
+def create_floor():
+    """Create a large flat white floor plane."""
+    bpy.ops.mesh.primitive_plane_add(size=60, location=(0, 0, 0))
+    floor = bpy.context.active_object
+    floor.name = "Floor"
+    floor.data.materials.append(create_white_material("FloorMaterial"))
+    return floor
 
-    return cube
+
+def create_boxes():
+    """Create 5 square boxes at different heights and positions for lighting tests."""
+    # (x, y, z_center, size, name) – z values intentionally vary so some boxes
+    # are partly inside the floor (negative z) and some float above it.
+    box_configs = [
+        (0.0,  0.0,  1.0, 2.0, "Box_Center_OnFloor"),
+        (-5.0,  4.0,  3.5, 1.5, "Box_Left_Floating"),
+        (5.0, -3.0, -0.5, 2.5, "Box_Right_InsideFloor"),
+        (-4.0, -5.0,  0.5, 1.8, "Box_BackLeft_OnFloor"),
+        (6.0,  5.0,  5.0, 1.2, "Box_FarRight_HighUp"),
+    ]
+
+    boxes = []
+    box_mat = create_white_material("BoxMaterial")
+    for x, y, z, size, name in box_configs:
+        bpy.ops.mesh.primitive_cube_add(size=size, location=(x, y, z))
+        box = bpy.context.active_object
+        box.name = name
+        box.data.materials.append(box_mat)
+        boxes.append(box)
+
+    return boxes
 
 
 def setup_lighting():
     """Set up three-point lighting for the scene."""
     # Key light - main light source
-    bpy.ops.object.light_add(type="AREA", location=(4, -3, 5))
+    bpy.ops.object.light_add(type="AREA", location=(8, -6, 10))
     key_light = bpy.context.active_object
     key_light.name = "KeyLight"
-    key_light.data.energy = 200
-    key_light.data.size = 3
+    key_light.data.energy = 800
+    key_light.data.size = 6
     key_light.data.color = (1.0, 0.95, 0.9)
 
     # Fill light - softer, from the other side
-    bpy.ops.object.light_add(type="AREA", location=(-3, -2, 3))
+    bpy.ops.object.light_add(type="AREA", location=(-6, -4, 6))
     fill_light = bpy.context.active_object
     fill_light.name = "FillLight"
-    fill_light.data.energy = 80
-    fill_light.data.size = 5
+    fill_light.data.energy = 300
+    fill_light.data.size = 10
     fill_light.data.color = (0.9, 0.93, 1.0)
 
     # Rim light - from behind for edge definition
-    bpy.ops.object.light_add(type="AREA", location=(-1, 4, 4))
+    bpy.ops.object.light_add(type="AREA", location=(-2, 8, 8))
     rim_light = bpy.context.active_object
     rim_light.name = "RimLight"
-    rim_light.data.energy = 120
-    rim_light.data.size = 2
+    rim_light.data.energy = 400
+    rim_light.data.size = 4
     rim_light.data.color = (1.0, 1.0, 1.0)
 
 
 def setup_camera():
-    """Set up the camera to frame the cube nicely."""
-    bpy.ops.object.camera_add(location=(4.5, -4.5, 3.5))
+    """Set up the camera to frame the floor and boxes scene."""
+    bpy.ops.object.camera_add(location=(18, -18, 12))
     camera = bpy.context.active_object
     camera.name = "Camera"
 
-    # Point camera at the cube
-    constraint = camera.constraints.new(type="TRACK_TO")
-    constraint.target = bpy.data.objects["OrangeCube"]
-    constraint.track_axis = "TRACK_NEGATIVE_Z"
-    constraint.up_axis = "UP_Y"
+    # Point camera toward the center of the scene
+    import mathutils
+    direction = mathutils.Vector((0, 0, 0)) - mathutils.Vector((18, -18, 12))
+    rot_quat = direction.to_track_quat("-Z", "Y")
+    camera.rotation_euler = rot_quat.to_euler()
 
     bpy.context.scene.camera = camera
 
@@ -113,7 +134,7 @@ def setup_render_settings():
 def render(output_path=None):
     """Render the scene to an image file."""
     if output_path is None:
-        output_path = os.path.join(os.getcwd(), "orange_cube.png")
+        output_path = os.path.join(os.getcwd(), "boxes_on_floor.png")
 
     bpy.context.scene.render.filepath = output_path
     bpy.ops.render.render(write_still=True)
@@ -122,9 +143,10 @@ def render(output_path=None):
 
 
 def main():
-    """Main entry point: set up the scene and render an orange cube."""
+    """Main entry point: set up the scene and render five boxes on a white floor."""
     clear_scene()
-    create_cube()
+    create_floor()
+    create_boxes()
     setup_lighting()
     setup_camera()
     setup_world()
