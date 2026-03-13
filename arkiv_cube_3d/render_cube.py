@@ -11,7 +11,7 @@ def clear_scene():
 
 
 def create_floor():
-    """Create a large white floor plane."""
+    """Create a large floor plane with diffuse reflections."""
     bpy.ops.mesh.primitive_plane_add(size=100, location=(0, 0, 0))
     floor = bpy.context.active_object
     floor.name = "Floor"
@@ -19,8 +19,10 @@ def create_floor():
     mat = bpy.data.materials.new(name="FloorMaterial")
     mat.use_nodes = True
     bsdf = mat.node_tree.nodes.get("Principled BSDF")
-    bsdf.inputs["Base Color"].default_value = (1.0, 1.0, 1.0, 1.0)
-    bsdf.inputs["Roughness"].default_value = 0.5
+    bsdf.inputs["Base Color"].default_value = (0.85, 0.85, 0.85, 1.0)
+    bsdf.inputs["Roughness"].default_value = 0.2
+    bsdf.inputs["Metallic"].default_value = 0.0
+    bsdf.inputs["Specular IOR Level"].default_value = 0.8
 
     floor.data.materials.append(mat)
     return floor
@@ -121,7 +123,7 @@ def setup_world():
 
     bg_node = tree.nodes.new(type="ShaderNodeBackground")
     bg_node.inputs["Color"].default_value = (1.0, 1.0, 1.0, 1.0)
-    bg_node.inputs["Strength"].default_value = 1.0
+    bg_node.inputs["Strength"].default_value = 0.3
 
     output_node = tree.nodes.new(type="ShaderNodeOutputWorld")
     tree.links.new(bg_node.outputs["Background"], output_node.inputs["Surface"])
@@ -135,6 +137,11 @@ def setup_render_settings():
     scene.cycles.device = "CPU"
     scene.cycles.samples = 128
     scene.cycles.use_denoising = True
+
+    # Ensure enough light bounces for reflections and shadows
+    scene.cycles.max_bounces = 12
+    scene.cycles.glossy_bounces = 4
+    scene.cycles.diffuse_bounces = 4
 
     scene.render.resolution_x = 1920
     scene.render.resolution_y = 1080
