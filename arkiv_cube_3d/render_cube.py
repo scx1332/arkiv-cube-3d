@@ -5,6 +5,11 @@ import os
 from pathlib import Path
 
 try:
+    from .geometry import BOX_CONFIGS, create_box_geometry, create_floor_geometry
+except ImportError:  # pragma: no cover - supports direct script execution
+    from geometry import BOX_CONFIGS, create_box_geometry, create_floor_geometry
+
+try:
     import bpy
 except ImportError:  # pragma: no cover - exercised indirectly by runtime checks
     bpy = None
@@ -109,15 +114,7 @@ def create_floor(params=DEFAULT_RENDER_PARAMETERS):
     blender = require_bpy()
 
     # 1. Define the geometry for a 100x100 plane manually
-    size = 100.0
-    half = size / 2.0
-    verts = [
-        (-half, -half, 0.0),
-        (half, -half, 0.0),
-        (half, half, 0.0),
-        (-half, half, 0.0)
-    ]
-    faces = [(0, 1, 2, 3)]
+    verts, faces = create_floor_geometry()
 
     # 2. Create the mesh and object directly in Blender's data blocks
     mesh = blender.data.meshes.new(name="FloorMesh")
@@ -150,15 +147,6 @@ def create_boxes(params=DEFAULT_RENDER_PARAMETERS):
     blender = require_bpy()
     boxes = []
 
-    # 1. Fixed unique names for better scene organization
-    box_configs = [
-        ("Box_Center", (0, 0, 2.0), 2.0),
-        ("Box_East",   (5, 0, 2.0), 2.0),
-        ("Box_North",  (0, 5, 2.0), 2.0),
-        ("Box_West",   (-5, 0, 2.0), 2.0),
-        ("Box_South",  (0, -5, 2.0), 2.0),
-    ]
-
     # 2. Optimized: Create the material ONCE before the loop
     mat = blender.data.materials.new(name="BoxTestMaterial")
     mat.use_nodes = True
@@ -173,26 +161,8 @@ def create_boxes(params=DEFAULT_RENDER_PARAMETERS):
         set_material_input(bsdf, ["Emission Strength"], params.box_emission_strength)
 
     # 3. Create the geometry directly in Blender's data blocks
-    for name, loc, size in box_configs:
-
-        # Calculate radius from size to define the bounding box limits
-        r = size / 2.0
-
-        # Define 8 vertices of a cube
-        verts = [
-            (-r, -r, -r), ( r, -r, -r), ( r,  r, -r), (-r,  r, -r), # Bottom 4
-            (-r, -r,  r), ( r, -r,  r), ( r,  r,  r), (-r,  r,  r)  # Top 4
-        ]
-
-        # Define the 6 faces connecting the vertices
-        faces = [
-            (0, 1, 2, 3), # Bottom
-            (7, 6, 5, 4), # Top
-            (0, 1, 5, 4), # Front
-            (1, 2, 6, 5), # Right
-            (2, 3, 7, 6), # Back
-            (3, 0, 4, 7)  # Left
-        ]
+    for name, loc, size in BOX_CONFIGS:
+        verts, faces = create_box_geometry(size)
 
         # Create Mesh and Object data
         mesh = blender.data.meshes.new(name=f"{name}_Mesh")
