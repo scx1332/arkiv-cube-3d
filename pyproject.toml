@@ -13,6 +13,7 @@ dependencies = [
 
 [project.scripts]
 render-cube = "arkiv_cube_3d.render_cube:main"
+render-cube-web = "arkiv_cube_3d.web_server:main"
 
 [build-system]
 requires = ["setuptools>=68.0"]

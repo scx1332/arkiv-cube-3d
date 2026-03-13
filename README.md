@@ -32,6 +32,20 @@ pip install bpy
 python arkiv_cube_3d/render_cube.py
 ```
 
+### Run the local web control panel
+
+You can also start a lightweight local web server for tweaking the cube material and lighting in the browser:
+
+```bash
+render-cube-web
+```
+
+Then open <http://127.0.0.1:8000> and use the panel to:
+
+- tweak cube color, roughness, metallic/specular/emission and scene lighting
+- click **Draw preview** for a quick lower-sample render
+- click **Draw full resolution** for a 1920×1080 render
+
 ## GitHub Actions
 
 A workflow is included that automatically renders the cube on push/PR to `main`. It:
