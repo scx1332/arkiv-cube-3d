@@ -64,48 +64,107 @@ def clear_scene():
 
 
 def create_floor(params=DEFAULT_RENDER_PARAMETERS):
-    """Create a large white floor plane."""
+    """Create a large white floor plane without relying on UI context."""
     blender = require_bpy()
-    blender.ops.mesh.primitive_plane_add(size=100, location=(0, 0, 0))
-    floor = blender.context.active_object
-    floor.name = "Floor"
 
+    # 1. Define the geometry for a 100x100 plane manually
+    size = 100.0
+    half = size / 2.0
+    verts = [
+        (-half, -half, 0.0),
+        (half, -half, 0.0),
+        (half, half, 0.0),
+        (-half, half, 0.0)
+    ]
+    faces = [(0, 1, 2, 3)]
+
+    # 2. Create the mesh and object directly in Blender's data blocks
+    mesh = blender.data.meshes.new(name="FloorMesh")
+    mesh.from_pydata(verts, [], faces)
+    mesh.update() # Important: updates the mesh geometry data
+
+    floor = blender.data.objects.new(name="Floor", object_data=mesh)
+
+    # 3. Link the object to the scene collection so it actually appears
+    # (scene.collection is safer than context in background processes,
+    # though context.scene usually still works if initialized properly)
+    blender.context.scene.collection.objects.link(floor)
+
+    # 4. Material Setup
     mat = blender.data.materials.new(name="FloorMaterial")
     mat.use_nodes = True
     bsdf = mat.node_tree.nodes.get("Principled BSDF")
-    bsdf.inputs["Base Color"].default_value = (1.0, 1.0, 1.0, 1.0)
-    set_material_input(bsdf, ["Roughness"], params.floor_roughness)
+
+    if bsdf: # Always safe to check if the node exists
+        bsdf.inputs["Base Color"].default_value = (1.0, 1.0, 1.0, 1.0)
+        set_material_input(bsdf, ["Roughness"], params.floor_roughness)
 
     floor.data.materials.append(mat)
+
     return floor
 
 
 def create_boxes(params=DEFAULT_RENDER_PARAMETERS):
-    """Create 5 boxes at different heights for lighting tests."""
+    """Create 5 boxes at different locations for lighting tests without UI context."""
     blender = require_bpy()
     boxes = []
+
+    # 1. Fixed unique names for better scene organization
     box_configs = [
-        ("Box1", (0, 0, 2.0), 2.0),
-        ("Box1", (5, 0, 2.0), 2.0),
-        ("Box1", (0, 5, 2.0), 2.0),
-        ("Box1", (-5, 0, 2.0), 2.0),
-        ("Box1", (0, -5, 2.0), 2.0),
+        ("Box_Center", (0, 0, 2.0), 2.0),
+        ("Box_East",   (5, 0, 2.0), 2.0),
+        ("Box_North",  (0, 5, 2.0), 2.0),
+        ("Box_West",   (-5, 0, 2.0), 2.0),
+        ("Box_South",  (0, -5, 2.0), 2.0),
     ]
 
-    for name, loc, size in box_configs:
-        blender.ops.mesh.primitive_cube_add(size=size, location=loc)
-        box = blender.context.active_object
-        box.name = name
+    # 2. Optimized: Create the material ONCE before the loop
+    mat = blender.data.materials.new(name="BoxTestMaterial")
+    mat.use_nodes = True
+    bsdf = mat.node_tree.nodes.get("Principled BSDF")
 
-        mat = blender.data.materials.new(name=f"{name}Material")
-        mat.use_nodes = True
-        bsdf = mat.node_tree.nodes.get("Principled BSDF")
+    # Safety check in case the BSDF node isn't found
+    if bsdf:
         bsdf.inputs["Base Color"].default_value = params.box_color
         set_material_input(bsdf, ["Roughness"], params.box_roughness)
         set_material_input(bsdf, ["Metallic"], params.box_metallic)
         set_material_input(bsdf, ["Specular IOR Level", "Specular"], params.box_specular)
         set_material_input(bsdf, ["Emission Strength"], params.box_emission_strength)
 
+    # 3. Create the geometry directly in Blender's data blocks
+    for name, loc, size in box_configs:
+
+        # Calculate radius from size to define the bounding box limits
+        r = size / 2.0
+
+        # Define 8 vertices of a cube
+        verts = [
+            (-r, -r, -r), ( r, -r, -r), ( r,  r, -r), (-r,  r, -r), # Bottom 4
+            (-r, -r,  r), ( r, -r,  r), ( r,  r,  r), (-r,  r,  r)  # Top 4
+        ]
+
+        # Define the 6 faces connecting the vertices
+        faces = [
+            (0, 1, 2, 3), # Bottom
+            (7, 6, 5, 4), # Top
+            (0, 1, 5, 4), # Front
+            (1, 2, 6, 5), # Right
+            (2, 3, 7, 6), # Back
+            (3, 0, 4, 7)  # Left
+        ]
+
+        # Create Mesh and Object data
+        mesh = blender.data.meshes.new(name=f"{name}_Mesh")
+        mesh.from_pydata(verts, [], faces)
+        mesh.update() # Write the new geometry data to the mesh
+
+        box = blender.data.objects.new(name=name, object_data=mesh)
+        box.location = loc
+
+        # Link to scene so it is visible/renderable
+        blender.context.scene.collection.objects.link(box)
+
+        # Assign the shared material
         box.data.materials.append(mat)
         boxes.append(box)
 
@@ -115,44 +174,63 @@ def create_boxes(params=DEFAULT_RENDER_PARAMETERS):
 def setup_lighting(params=DEFAULT_RENDER_PARAMETERS):
     """Set up three-point lighting for the scene."""
     blender = require_bpy()
-    blender.ops.object.light_add(type="AREA", location=(6, -5, 8))
-    key_light = blender.context.active_object
-    key_light.name = "KeyLight"
-    key_light.data.energy = params.key_light_energy
-    key_light.data.size = 5
-    key_light.data.color = (1.0, 0.95, 0.9)
+    scene_collection = blender.context.scene.collection
 
-    blender.ops.object.light_add(type="AREA", location=(-5, -3, 5))
-    fill_light = blender.context.active_object
-    fill_light.name = "FillLight"
-    fill_light.data.energy = params.fill_light_energy
-    fill_light.data.size = 8
-    fill_light.data.color = (0.9, 0.93, 1.0)
+    # --- Key Light ---
+    key_data = blender.data.lights.new(name="KeyLight", type="AREA")
+    key_data.energy = params.key_light_energy
+    key_data.size = 5
+    key_data.color = (1.0, 0.95, 0.9)
 
-    blender.ops.object.light_add(type="AREA", location=(-2, 6, 6))
-    rim_light = blender.context.active_object
-    rim_light.name = "RimLight"
-    rim_light.data.energy = params.rim_light_energy
-    rim_light.data.size = 4
-    rim_light.data.color = (1.0, 1.0, 1.0)
+    key_light = blender.data.objects.new(name="KeyLight", object_data=key_data)
+    key_light.location = (6, -5, 8)
+    scene_collection.objects.link(key_light)
+
+    # --- Fill Light ---
+    fill_data = blender.data.lights.new(name="FillLight", type="AREA")
+    fill_data.energy = params.fill_light_energy
+    fill_data.size = 8
+    fill_data.color = (0.9, 0.93, 1.0)
+
+    fill_light = blender.data.objects.new(name="FillLight", object_data=fill_data)
+    fill_light.location = (-5, -3, 5)
+    scene_collection.objects.link(fill_light)
+
+    # --- Rim Light ---
+    rim_data = blender.data.lights.new(name="RimLight", type="AREA")
+    rim_data.energy = params.rim_light_energy
+    rim_data.size = 4
+    rim_data.color = (1.0, 1.0, 1.0)
+
+    rim_light = blender.data.objects.new(name="RimLight", object_data=rim_data)
+    rim_light.location = (-2, 6, 6)
+    scene_collection.objects.link(rim_light)
 
 
 def setup_camera():
     """Set up the camera to frame the scene with all boxes."""
     blender = require_bpy()
-    blender.ops.object.camera_add(location=(12, -12, 10))
-    camera = blender.context.active_object
-    camera.name = "Camera"
+    scene_collection = blender.context.scene.collection
 
-    blender.ops.object.empty_add(type="PLAIN_AXES", location=(0, 0, 1))
-    target = blender.context.active_object
-    target.name = "CameraTarget"
+    # --- Camera Target (Empty) ---
+    target = blender.data.objects.new("CameraTarget", None)
+    target.empty_display_type = "PLAIN_AXES"
+    target.location = (0, 0, 1)
+    scene_collection.objects.link(target)
 
+    # --- Camera ---
+    cam_data = blender.data.cameras.new("Camera")
+    camera = blender.data.objects.new("Camera", object_data=cam_data)
+    camera.location = (12, -12, 10)
+    scene_collection.objects.link(camera)
+
+    # --- Constraints ---
     constraint = camera.constraints.new(type="TRACK_TO")
     constraint.target = target
     constraint.track_axis = "TRACK_NEGATIVE_Z"
     constraint.up_axis = "UP_Y"
 
+    # Set as the scene's active camera
     blender.context.scene.camera = camera
 
 
