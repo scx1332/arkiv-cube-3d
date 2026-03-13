@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 import arkiv_cube_3d.render_cube as render_cube
 from arkiv_cube_3d.render_cube import FULL_RES_RENDER_PARAMETERS, PREVIEW_RENDER_PARAMETERS
@@ -146,6 +147,62 @@ class WebServerTests(unittest.TestCase):
         self.assertIs(created_floor, floor)
         self.assertEqual(created_floor.name, "Floor")
         self.assertEqual(len(created_floor.data.materials), 1)
+
+    def test_create_floor_uses_get_active_object(self):
+        class Socket:
+            def __init__(self):
+                self.default_value = None
+
+        class Inputs(dict):
+            def get(self, name):
+                return super().get(name)
+
+        class Bsdf:
+            def __init__(self):
+                self.inputs = Inputs({"Base Color": Socket(), "Roughness": Socket()})
+
+        class Nodes(dict):
+            def get(self, name):
+                return super().get(name)
+
+        class NodeTree:
+            def __init__(self):
+                self.nodes = Nodes({"Principled BSDF": Bsdf()})
+
+        class Material:
+            def __init__(self):
+                self.use_nodes = False
+                self.node_tree = NodeTree()
+
+        class Materials:
+            def new(self, name):
+                return Material()
+
+        class MeshData:
+            def __init__(self):
+                self.materials = []
+
+        floor = type("Floor", (), {"name": None, "data": MeshData()})()
+
+        blender = type(
+            "Bpy",
+            (),
+            {
+                "context": object(),
+                "ops": type("Ops", (), {"mesh": type("MeshOps", (), {"primitive_plane_add": lambda self, **kwargs: None})()})(),
+                "data": type("Data", (), {"materials": Materials()})(),
+            },
+        )()
+
+        original_bpy = render_cube.bpy
+        render_cube.bpy = blender
+        self.addCleanup(setattr, render_cube, "bpy", original_bpy)
+
+        with patch("arkiv_cube_3d.render_cube.get_active_object", return_value=floor) as get_active_object:
+            created_floor = render_cube.create_floor()
+
+        get_active_object.assert_called_once_with()
+        self.assertIs(created_floor, floor)
 
 
 if __name__ == "__main__":
