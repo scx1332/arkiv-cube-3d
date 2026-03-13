@@ -15,6 +15,15 @@ pip install bpy
 
 ## Usage
 
+You can also run the package directly with Python's -m switch which dispatches to a small CLI. By default this starts the local web control panel (safe when bpy is unavailable):
+
+```bash
+python -m arkiv_cube_3d
+# or explicitly:
+python -m arkiv_cube_3d web
+python -m arkiv_cube_3d render  # requires bpy / Blender
+```
+
 ### Run via Blender CLI (recommended)
 
 Since the script uses the `bpy` module, the simplest way to run it is through Blender's built-in Python:
