@@ -46,7 +46,13 @@ def _build_parser(argv0: str | None = None) -> argparse.ArgumentParser:
         default=8000,
         help="Port for the web server (web command only).",
     )
-    subcommands.add_parser("render", help="Run a Blender render using bpy.")
+
+    render_parser = subcommands.add_parser("render", help="Run a Blender render using bpy.")
+    render_parser.add_argument(
+        "--full",
+        action="store_true",
+        help="Run a full render instead of a fast preview (render command only).",
+    )
     return parser
 
 
@@ -78,9 +84,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 3
 
     try:
-        out = render_cube.main()
+        if args.full:
+            print("Starting full render...")
+            out = render_cube.render_full()
+        else:
+            print("Starting fast preview render...")
+            out = render_cube.render_fast()
         print(f"Render completed: {out}")
-        return 0
     except Exception as exc:  # pragma: no cover - run-time behavior
         print(f"Render failed: {exc}", file=sys.stderr)
         return 4

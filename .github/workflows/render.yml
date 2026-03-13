@@ -33,7 +33,7 @@ jobs:
 
       - name: Render the cube
         run: |
-          python arkiv_cube_3d/render_cube.py
+          python -m arkiv_cube_3d render --full
 
       - name: Upload rendered image
         uses: actions/upload-artifact@v4

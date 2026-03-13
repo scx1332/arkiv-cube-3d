@@ -316,10 +316,14 @@ def render_scene(params=DEFAULT_RENDER_PARAMETERS, output_path=None):
     return render(output_path=output_path)
 
 
-def main():
+def render_fast():
     """Main entry point: set up the scene and render boxes on a white floor."""
     return render_scene(DEFAULT_RENDER_PARAMETERS)
 
+def render_full():
+    """Main entry point: set up the scene and render boxes on a white floor."""
+    return render_scene(FULL_RES_RENDER_PARAMETERS)
+
 
 if __name__ == "__main__":
-    main()
+    render_fast()
