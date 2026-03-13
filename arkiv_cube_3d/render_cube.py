@@ -11,7 +11,7 @@ def clear_scene():
 
 
 def create_floor():
-    """Create a large white floor plane."""
+    """Create a large white floor plane with low-roughness material for diffused reflections."""
     bpy.ops.mesh.primitive_plane_add(size=100, location=(0, 0, 0))
     floor = bpy.context.active_object
     floor.name = "Floor"
@@ -19,8 +19,10 @@ def create_floor():
     mat = bpy.data.materials.new(name="FloorMaterial")
     mat.use_nodes = True
     bsdf = mat.node_tree.nodes.get("Principled BSDF")
-    bsdf.inputs["Base Color"].default_value = (1.0, 1.0, 1.0, 1.0)
-    bsdf.inputs["Roughness"].default_value = 0.5
+    bsdf.inputs["Base Color"].default_value = (1.0, 1.0, 1.0, 1.0)  # White
+    # Low roughness produces diffused (blurry) reflections of boxes above the floor.
+    # Shadows from boxes are cast onto the floor automatically by the Cycles renderer.
+    bsdf.inputs["Roughness"].default_value = 0.1
 
     floor.data.materials.append(mat)
     return floor
