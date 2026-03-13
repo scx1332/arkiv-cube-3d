@@ -21,7 +21,7 @@ Build and start the web server with Docker Compose:
 docker compose up --build
 ```
 
-Then open <http://127.0.0.1:8000>.
+Then open http://127.0.0.1:8000.
 
 The container uses Python 3.11 to match the project's Blender / `bpy` requirements.
 
