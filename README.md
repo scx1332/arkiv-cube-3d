@@ -24,6 +24,12 @@ python -m arkiv_cube_3d web
 python -m arkiv_cube_3d render  # requires bpy / Blender
 ```
 
+If you're running from a source checkout and want a simple script instead of `-m`, use:
+
+```bash
+python start_web.py
+```
+
 ### Run via Blender CLI (recommended)
 
 Since the script uses the `bpy` module, the simplest way to run it is through Blender's built-in Python:
@@ -47,6 +53,8 @@ You can also start a lightweight local web server for tweaking the cube material
 
 ```bash
 render-cube-web
+# or from a source checkout:
+python start_web.py
 ```
 
 Then open <http://127.0.0.1:8000> and use the panel to:
