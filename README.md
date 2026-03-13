@@ -13,6 +13,18 @@ Render a 3D orange cube on a white background with nice lighting and Cycles ray 
 pip install bpy
 ```
 
+## Run with Docker
+
+Build and start the web server with Docker Compose:
+
+```bash
+docker compose up --build
+```
+
+Then open <http://127.0.0.1:8000>.
+
+The container uses Python 3.11 to match the project's Blender / `bpy` requirements.
+
 ## Usage
 
 You can also run the package directly with Python's -m switch which dispatches to a small CLI. By default this starts the local web control panel (safe when bpy is unavailable):
@@ -28,6 +40,13 @@ If you're running from a source checkout and want a simple script instead of `-m
 
 ```bash
 python start_web.py
+```
+
+If you prefer Docker without Compose:
+
+```bash
+docker build -t arkiv-cube-3d .
+docker run --rm -p 8000:8000 arkiv-cube-3d
 ```
 
 ### Run via Blender CLI (recommended)

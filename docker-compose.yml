@@ -1,0 +1,7 @@
+services:
+  web:
+    build:
+      context: .
+    ports:
+      - "8000:8000"
+    command: ["python", "-m", "arkiv_cube_3d", "web", "--host", "0.0.0.0", "--port", "8000"]
