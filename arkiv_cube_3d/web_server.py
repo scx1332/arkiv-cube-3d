@@ -63,7 +63,7 @@ def render_with_profile(payload, profile):
     file_name = f"{profile}-{int(time.time() * 1000)}.png"
     output_path = RENDER_OUTPUT_DIR / file_name
     render_scene(params, output_path=str(output_path))
-    return file_name, params
+    return file_name, output_path.with_suffix(".blend").name, params
 
 
 def default_form_values():
@@ -161,6 +161,12 @@ def render_page():
       margin-bottom: 12px;
       color: #e2e8f0;
     }}
+    .download-link {{
+      display: none;
+      margin-bottom: 12px;
+      color: #93c5fd;
+      font-weight: 600;
+    }}
     img {{
       width: 100%;
       border-radius: 12px;
@@ -230,6 +236,7 @@ def render_page():
     <section class="viewer">
       <div class="viewer-inner">
         <div class="status" id="status">Ready to render.</div>
+        <a class="download-link" id="blend_download" download>Download scene (.blend)</a>
         <img id="rendered_image" alt="Latest render preview" style="display: none;">
       </div>
     </section>
@@ -252,9 +259,11 @@ def render_page():
     async function draw(profile) {{
       const status = document.getElementById("status");
       const image = document.getElementById("rendered_image");
+      const blendDownload = document.getElementById("blend_download");
       status.textContent = profile === "preview"
         ? "Rendering preview…"
         : "Rendering full-resolution image…";
+      blendDownload.style.display = "none";
 
       const payload = Object.fromEntries(formFields.map((fieldName) => [fieldName, document.getElementById(fieldName).value]));
 
@@ -272,9 +281,12 @@ def render_page():
 
         image.src = `${{result.image_url}}?ts=${{Date.now()}}`;
         image.style.display = "block";
+        blendDownload.href = result.blend_url;
+        blendDownload.style.display = "inline-block";
         status.textContent = result.message;
       }} catch (error) {{
         image.style.display = "none";
+        blendDownload.style.display = "none";
         status.textContent = error.message;
       }}
     }}
@@ -302,14 +314,15 @@ class RenderRequestHandler(BaseHTTPRequestHandler):
             return
 
         if request_path.startswith("/renders/"):
-            image_path = (RENDER_OUTPUT_DIR / request_path.removeprefix("/renders/")).resolve()
-            if image_path.parent != RENDER_OUTPUT_DIR.resolve() or not image_path.exists():
+            output_path = (RENDER_OUTPUT_DIR / request_path.removeprefix("/renders/")).resolve()
+            if output_path.parent != RENDER_OUTPUT_DIR.resolve() or not output_path.exists():
                 self.send_error(HTTPStatus.NOT_FOUND, "Render not found.")
                 return
 
-            content = image_path.read_bytes()
+            content_type = "image/png" if output_path.suffix.lower() == ".png" else "application/octet-stream"
+            content = output_path.read_bytes()
             self.send_response(HTTPStatus.OK)
-            self.send_header("Content-Type", "image/png")
+            self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(content)))
             self.end_headers()
             self.wfile.write(content)
@@ -334,9 +347,10 @@ class RenderRequestHandler(BaseHTTPRequestHandler):
                     "Run the server through Blender or install the bpy package first."
                 )
 
-            image_name, render_params = render_with_profile(params, profile)
+            image_name, blend_name, render_params = render_with_profile(params, profile)
             response = {
                 "image_url": f"/renders/{image_name}",
+                "blend_url": f"/renders/{blend_name}",
                 "message": (
                     f"Finished {profile} render at "
                     f"{render_params.resolution_x}×{render_params.resolution_y} with {render_params.samples} samples."

@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass, replace
 import os
+from pathlib import Path
 
 try:
     import bpy
@@ -63,13 +64,28 @@ def remove_unused_data_blocks(collection):
             collection.remove(item)
 
 
+def remove_data_block(collection, block):
+    """Remove a Blender data block, tolerating simple test doubles."""
+    try:
+        collection.remove(block, do_unlink=True)
+    except TypeError:
+        collection.remove(block)
+
+
 def clear_scene():
     """Remove all objects and data directly without relying on UI context."""
     blender = require_bpy()
 
-    # 1. Delete all objects from the scene directly
-    for obj in list(blender.data.objects):
-        blender.data.objects.remove(obj, do_unlink=True)
+    # 1. Delete all objects from the scene directly when possible.
+    objects = getattr(blender.data, "objects", None)
+    use_orphan_cleanup = False
+    if objects is not None:
+        for obj in list(objects):
+            remove_data_block(objects, obj)
+    elif hasattr(blender, "ops") and hasattr(blender.ops, "object"):
+        blender.ops.object.select_all(action="SELECT")
+        blender.ops.object.delete(use_global=False)
+        use_orphan_cleanup = True
 
     # 2. Nuke the underlying data blocks since we rebuild them every run
     collections_to_clear = [
@@ -80,8 +96,12 @@ def clear_scene():
     ]
 
     for collection in collections_to_clear:
+        if use_orphan_cleanup:
+            remove_unused_data_blocks(collection)
+            continue
+
         for block in list(collection):
-            collection.remove(block, do_unlink=True)
+            remove_data_block(collection, block)
 
 
 def create_floor(params=DEFAULT_RENDER_PARAMETERS):
@@ -298,10 +318,16 @@ def render(output_path=None):
     if output_path is None:
         output_path = os.path.join(os.getcwd(), "orange_cube.png")
 
-    blender.context.scene.render.filepath = output_path
+    output_file = Path(output_path)
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    blend_path = output_file.with_suffix(".blend")
+
+    blender.context.scene.render.filepath = str(output_file)
+    blender.ops.wm.save_as_mainfile(filepath=str(blend_path))
     blender.ops.render.render(write_still=True)
-    print(f"Render saved to: {output_path}")
-    return output_path
+    print(f"Render saved to: {output_file}")
+    print(f"Blend scene saved to: {blend_path}")
+    return str(output_file)
 
 
 def render_scene(params=DEFAULT_RENDER_PARAMETERS, output_path=None):

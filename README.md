@@ -81,6 +81,7 @@ Then open <http://127.0.0.1:8000> and use the panel to:
 - tweak cube color, roughness, metallic/specular/emission and scene lighting
 - click **Draw preview** for a quick lower-sample render
 - click **Draw full resolution** for a 1920×1080 render
+- download the generated `.blend` scene file for the latest render
 
 ## GitHub Actions
 
@@ -89,8 +90,8 @@ A workflow is included that automatically renders the cube on push/PR to `main`.
 1. Sets up Python 3.11
 2. Installs Blender and bpy via apt and pip
 3. Runs the render script
-4. Uploads the rendered image as a build artifact
+4. Uploads the rendered image and `.blend` scene as build artifacts
 
 ## Output
 
-The script renders `orange_cube.png` (1920×1080) in the current directory — an orange cube on a white background with three-point area lighting and Cycles ray tracing (128 samples with denoising).
+The script renders `orange_cube.png` (1920×1080) and saves the matching scene as `orange_cube.blend` in the current directory — an orange cube on a white background with three-point area lighting and Cycles ray tracing (128 samples with denoising).
