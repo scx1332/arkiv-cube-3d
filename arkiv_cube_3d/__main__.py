@@ -18,10 +18,11 @@ def _program_name(argv0: str | None = None) -> str:
 
 
 def _normalize_argv(argv: Sequence[str] | None) -> list[str]:
-    args = list(sys.argv[1:] if argv is None else argv)
+    if argv is None:
+        return list(sys.argv[1:])
+
+    args = list(argv)
     if args and Path(args[0]).name in {"__main__.py", "arkiv_cube_3d", "arkiv-cube-3d", "start_web.py"}:
-        return args[1:]
-    if args and Path(args[0]).suffix == ".py":
         return args[1:]
     return args
 
@@ -31,29 +32,28 @@ def _build_parser(argv0: str | None = None) -> argparse.ArgumentParser:
         prog=_program_name(argv0),
         description="Start the local web control panel or run a Blender render.",
     )
-    parser.add_argument(
-        "command",
-        nargs="?",
-        choices=("web", "render"),
-        default="web",
-        help="Command to run (defaults to %(default)s).",
-    )
-    parser.add_argument(
+    subcommands = parser.add_subparsers(dest="command")
+
+    web_parser = subcommands.add_parser("web", help="Start the local web control panel.")
+    web_parser.add_argument(
         "--host",
         default="127.0.0.1",
         help="Host interface for the web server (web command only).",
     )
-    parser.add_argument(
+    web_parser.add_argument(
         "--port",
         type=int,
         default=8000,
         help="Port for the web server (web command only).",
     )
+    subcommands.add_parser("render", help="Run a Blender render using bpy.")
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     raw_args = _normalize_argv(argv)
+    if not raw_args:
+        raw_args = ["web"]
     parser = _build_parser()
 
     try:
