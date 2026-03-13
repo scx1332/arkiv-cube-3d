@@ -67,11 +67,13 @@ def get_active_object():
     """Return the active object from the current Blender context."""
     blender = require_bpy()
     context = blender.context
+    view_layer = getattr(context, "view_layer", None)
+    view_layer_objects = getattr(view_layer, "objects", None)
 
     for object_ref in (
         getattr(context, "active_object", None),
         getattr(context, "object", None),
-        getattr(getattr(getattr(context, "view_layer", None), "objects", None), "active", None),
+        getattr(view_layer_objects, "active", None),
     ):
         if object_ref is not None:
             return object_ref
