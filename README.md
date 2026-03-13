@@ -34,6 +34,7 @@ python -m arkiv_cube_3d
 # or explicitly:
 python -m arkiv_cube_3d web
 python -m arkiv_cube_3d render  # requires bpy / Blender
+python -m arkiv_cube_3d render --input cubes.json
 ```
 
 If you're running from a source checkout and want a simple script instead of `-m`, use:
@@ -64,6 +65,25 @@ If the `bpy` package installs successfully in your environment:
 ```bash
 pip install bpy
 python arkiv_cube_3d/render_cube.py
+```
+
+To render cubes from a JSON input file, pass the file to the render command:
+
+```bash
+python -m arkiv_cube_3d render --input cubes.json
+```
+
+Example `cubes.json`:
+
+```json
+{
+  "count": 3,
+  "positions": [
+    [0, -10, 1.0],
+    [0, -6, 1.0],
+    [-10, 0, 1.0]
+  ]
+}
 ```
 
 ### Run the local web control panel

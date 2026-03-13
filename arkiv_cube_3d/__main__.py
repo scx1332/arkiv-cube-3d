@@ -7,6 +7,7 @@ from pathlib import Path
 import sys
 from typing import Sequence
 
+from .geometry import load_box_configs
 from . import render_cube, web_server
 
 
@@ -53,6 +54,11 @@ def _build_parser(argv0: str | None = None) -> argparse.ArgumentParser:
         action="store_true",
         help="Run a full render instead of a fast preview (render command only).",
     )
+    render_parser.add_argument(
+        "--input",
+        type=Path,
+        help="Path to a JSON file that defines cube positions and count (render command only).",
+    )
     return parser
 
 
@@ -84,13 +90,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 3
 
     try:
+        box_configs = load_box_configs(args.input) if args.input else None
         if args.full:
             print("Starting full render...")
-            out = render_cube.render_full()
+            out = render_cube.render_full(box_configs=box_configs)
         else:
             print("Starting fast preview render...")
-            out = render_cube.render_fast()
+            out = render_cube.render_fast(box_configs=box_configs)
         print(f"Render completed: {out}")
+        return 0
     except Exception as exc:  # pragma: no cover - run-time behavior
         print(f"Render failed: {exc}", file=sys.stderr)
         return 4

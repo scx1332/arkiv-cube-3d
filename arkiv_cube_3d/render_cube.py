@@ -142,10 +142,12 @@ def create_floor(params=DEFAULT_RENDER_PARAMETERS):
     return floor
 
 
-def create_boxes(params=DEFAULT_RENDER_PARAMETERS):
+def create_boxes(params=DEFAULT_RENDER_PARAMETERS, box_configs=None):
     """Create 5 boxes at different locations for lighting tests without UI context."""
     blender = require_bpy()
     boxes = []
+    if box_configs is None:
+        box_configs = BOX_CONFIGS
 
     # 2. Optimized: Create the material ONCE before the loop
     mat = blender.data.materials.new(name="BoxTestMaterial")
@@ -161,7 +163,7 @@ def create_boxes(params=DEFAULT_RENDER_PARAMETERS):
         set_material_input(bsdf, ["Emission Strength"], params.box_emission_strength)
 
     # 3. Create the geometry directly in Blender's data blocks
-    for name, loc, size in BOX_CONFIGS:
+    for name, loc, size in box_configs:
         verts, faces = create_box_geometry(size)
 
         # Create Mesh and Object data
@@ -300,11 +302,11 @@ def render(output_path=None):
     return str(output_file)
 
 
-def render_scene(params=DEFAULT_RENDER_PARAMETERS, output_path=None):
+def render_scene(params=DEFAULT_RENDER_PARAMETERS, output_path=None, box_configs=None):
     """Set up the scene and render it with the supplied parameters."""
     clear_scene()
     create_floor(params)
-    create_boxes(params)
+    create_boxes(params, box_configs=box_configs)
     setup_lighting(params)
     setup_camera()
     setup_world(params)
@@ -312,13 +314,13 @@ def render_scene(params=DEFAULT_RENDER_PARAMETERS, output_path=None):
     return render(output_path=output_path)
 
 
-def render_fast():
+def render_fast(box_configs=None):
     """Main entry point: set up the scene and render boxes on a white floor."""
-    return render_scene(DEFAULT_RENDER_PARAMETERS)
+    return render_scene(DEFAULT_RENDER_PARAMETERS, box_configs=box_configs)
 
-def render_full():
+def render_full(box_configs=None):
     """Main entry point: set up the scene and render boxes on a white floor."""
-    return render_scene(FULL_RES_RENDER_PARAMETERS)
+    return render_scene(FULL_RES_RENDER_PARAMETERS, box_configs=box_configs)
 
 
 if __name__ == "__main__":
