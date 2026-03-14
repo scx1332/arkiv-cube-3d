@@ -87,18 +87,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         return 3
 
-    try:
-        if args.full:
-            print("Starting full render...")
-            out = render_cube.render_full(image_path=args.image)
-        else:
-            print("Starting fast preview render...")
-            out = render_cube.render_fast(image_path=args.image)
-        print(f"Render completed: {out}")
-        return 0
-    except Exception as exc:  # pragma: no cover - run-time behavior
-        print(f"Render failed: {exc}", file=sys.stderr)
-        return 4
+    if args.full:
+        print("Starting full render...")
+        out = render_cube.render_full(image_path=args.image)
+    else:
+        print("Starting fast preview render...")
+        out = render_cube.render_fast(image_path=args.image)
+    print(f"Render completed: {out}")
+    return 0
 
 
 if __name__ == "__main__":

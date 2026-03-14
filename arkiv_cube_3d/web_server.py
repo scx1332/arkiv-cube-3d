@@ -51,7 +51,7 @@ def build_render_parameters(payload, profile="preview"):
         floor_roughness=clamp(float(payload.get("floor_roughness", base.floor_roughness)), 0.0, 1.0),
         world_strength=clamp(float(payload.get("world_strength", base.world_strength)), 0.0, 5.0),
         key_light_energy=clamp(float(payload.get("key_light_energy", base.key_light_energy)), 0.0, 5000.0),
-        fill_light_energy=clamp(float(payload.get("fill_light_energy", base.fill_light_energy)), 0.0, 5000.0),
+        fill_light_energy=clamp(float(payload.get("fill_light_energy", base.fill_light_energy)), 1500.0, 5000.0),
         rim_light_energy=clamp(float(payload.get("rim_light_energy", base.rim_light_energy)), 0.0, 5000.0),
     )
 
@@ -220,7 +220,7 @@ def render_page():
       </div>
       <div class="field">
         <label for="fill_light_energy"><span>Fill light</span><span id="fill_light_energy_value">{defaults["fill_light_energy"]:.0f}</span></label>
-        <input id="fill_light_energy" name="fill_light_energy" type="range" min="0" max="1500" step="10" value="{defaults["fill_light_energy"]}">
+        <input id="fill_light_energy" name="fill_light_energy" type="range" min="0" max="5000" step="10" value="{defaults["fill_light_energy"]}">
       </div>
       <div class="field">
         <label for="rim_light_energy"><span>Rim light</span><span id="rim_light_energy_value">{defaults["rim_light_energy"]:.0f}</span></label>

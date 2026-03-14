@@ -27,7 +27,7 @@ class RenderParameters:
     floor_roughness: float = 0.5
     world_strength: float = 0.1
     key_light_energy: float = 600.0
-    fill_light_energy: float = 50.0
+    fill_light_energy: float = 1500.0
     rim_light_energy: float = 100.0
     samples: int = 128
     resolution_x: int = 400
@@ -35,8 +35,8 @@ class RenderParameters:
 
 
 DEFAULT_RENDER_PARAMETERS = RenderParameters()
-PREVIEW_RENDER_PARAMETERS = replace(DEFAULT_RENDER_PARAMETERS, samples=16, resolution_x=600, resolution_y=400)
-FULL_RES_RENDER_PARAMETERS = replace(DEFAULT_RENDER_PARAMETERS, resolution_x=2000, resolution_y=1500)
+PREVIEW_RENDER_PARAMETERS = replace(DEFAULT_RENDER_PARAMETERS, samples=16, resolution_x=400, resolution_y=400)
+FULL_RES_RENDER_PARAMETERS = replace(DEFAULT_RENDER_PARAMETERS, resolution_x=2000, resolution_y=2000)
 HEIGHTMAP_IMAGE_SIZE = 23
 HEIGHTMAP_BOX_SIZE = 0.55
 
@@ -255,7 +255,7 @@ def setup_lighting(params=DEFAULT_RENDER_PARAMETERS):
     key_data = blender.data.lights.new(name="KeyLight", type="AREA")
     key_data.energy = params.key_light_energy
     key_data.size = 1.5
-    key_data.color = (1.0, 0.95, 0.9)
+    key_data.color = (1.0, 1.0, 1.0)
 
     key_light = blender.data.objects.new(name="KeyLight", object_data=key_data)
     key_light.location = (6, -5, 8)
@@ -265,10 +265,22 @@ def setup_lighting(params=DEFAULT_RENDER_PARAMETERS):
     fill_data = blender.data.lights.new(name="FillLight", type="AREA")
     fill_data.energy = params.fill_light_energy
     fill_data.size = 4.0
-    fill_data.color = (0.9, 0.93, 1.0)
+    fill_data.color = (1.0, 1.0, 1.0)
 
     fill_light = blender.data.objects.new(name="FillLight", object_data=fill_data)
-    fill_light.location = (-5, -3, 5)
+    fill_light.location = (-15, -15, 10)
+    scene_collection.objects.link(fill_light)
+
+    fill_light = blender.data.objects.new(name="FillLight2", object_data=fill_data)
+    fill_light.location = (15, -15, 10)
+    scene_collection.objects.link(fill_light)
+
+    fill_light = blender.data.objects.new(name="FillLight3", object_data=fill_data)
+    fill_light.location = (-15, 15, 10)
+    scene_collection.objects.link(fill_light)
+
+    fill_light = blender.data.objects.new(name="FillLight4", object_data=fill_data)
+    fill_light.location = (15, 15, 10)
     scene_collection.objects.link(fill_light)
 
     # --- Rim Light ---
@@ -296,7 +308,7 @@ def setup_camera():
     # --- Camera ---
     cam_data = blender.data.cameras.new("Camera")
     camera = blender.data.objects.new("Camera", object_data=cam_data)
-    camera.location = (0, -0.01, 20)
+    camera.location = (0, -0.01, 30)
     scene_collection.objects.link(camera)
 
     # --- Constraints ---
@@ -364,13 +376,16 @@ def render(output_path=None):
     return str(output_file)
 
 
-def render_scene(params=DEFAULT_RENDER_PARAMETERS, output_path=None, image_path=None):
+def render_scene(params=DEFAULT_RENDER_PARAMETERS, output_path=None, image_path="example.png"):
     """Set up the scene and render it with the supplied parameters."""
     clear_scene()
     # create_floor(params)
     pixel_grid = None
     if image_path is not None:
         pixel_grid = load_image_heightmap(image_path)
+    else:
+        pixel_grid = load_image_heightmap("example.png")
+
     create_boxes(params, pixel_grid=pixel_grid)
     setup_lighting(params)
     setup_camera()

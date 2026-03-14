@@ -20,9 +20,9 @@ def create_box_configs(pixel_grid):
             pixel_x = x_index - BOX_GRID_MARGIN
             pixel_y = y_index - BOX_GRID_MARGIN
 
-            try:
+            if 0 <= pixel_x < 23 and pixel_y >= 0 and pixel_y < 23:
                 color, height_intensity = pixel_grid[pixel_y][pixel_x]
-            except (IndexError, TypeError):
+            else:
                 color, height_intensity = DEFAULT_BOX_COLOR, 0.0
 
             box_height = BOX_HEIGHT_MULTIPLIER * height_intensity
