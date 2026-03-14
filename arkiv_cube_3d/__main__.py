@@ -55,7 +55,7 @@ def _build_parser(argv0: str | None = None) -> argparse.ArgumentParser:
     )
     render_parser.add_argument(
         "--image",
-        help="Load a fixed 11x11 image and use its grayscale values as box heights (render command only).",
+        help="Load a fixed 23x23 PNG and use its colors with brightness-derived box heights (render command only).",
     )
     return parser
 

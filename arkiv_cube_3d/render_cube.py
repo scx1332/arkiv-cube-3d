@@ -169,7 +169,7 @@ def create_height_box_geometry(size, height):
 
 
 def load_image_heightmap(image_path):
-    """Load a fixed 11x11 image through Blender and return grayscale heights."""
+    """Load a fixed 23x23 image through Blender and return pixel colors with height intensities."""
     blender = require_bpy()
     resolved_path = Path(image_path).expanduser().resolve()
     image = blender.data.images.load(filepath=str(resolved_path))
@@ -183,24 +183,25 @@ def load_image_heightmap(image_path):
             )
 
         pixels = list(image.pixels[:])
-        heightmap = []
+        pixel_grid = []
         for row_index in range(height):
             row = []
             for column_index in range(width):
                 pixel_index = (row_index * width + column_index) * 4
-                red, green, blue = pixels[pixel_index : pixel_index + 3]
-                row.append((red + green + blue) / 3.0)
-            heightmap.append(row)
-        return heightmap
+                red, green, blue, alpha = pixels[pixel_index : pixel_index + 4]
+                brightness = (red + green + blue) / 3.0
+                row.append(((red, green, blue, alpha), 1.0 - brightness))
+            pixel_grid.append(row)
+        return pixel_grid
     finally:
         remove_data_block(blender.data.images, image)
 
 
-def create_boxes(params=DEFAULT_RENDER_PARAMETERS, box_configs=None):
+def create_boxes(params=DEFAULT_RENDER_PARAMETERS, pixel_grid=None):
     """Create boxes from the configured layout and colors."""
     blender = require_bpy()
     boxes = []
-    active_box_configs = create_box_configs(box_configs)
+    active_box_configs = create_box_configs(pixel_grid)
     for config in active_box_configs:
         if len(config) == 5:
             name, loc, size, color, height = config
@@ -367,10 +368,10 @@ def render_scene(params=DEFAULT_RENDER_PARAMETERS, output_path=None, image_path=
     """Set up the scene and render it with the supplied parameters."""
     clear_scene()
     # create_floor(params)
-    box_configs = None
+    pixel_grid = None
     if image_path is not None:
-        box_configs = load_image_heightmap(image_path)
-    create_boxes(params, box_configs=box_configs)
+        pixel_grid = load_image_heightmap(image_path)
+    create_boxes(params, pixel_grid=pixel_grid)
     setup_lighting(params)
     setup_camera()
     setup_world(params)
