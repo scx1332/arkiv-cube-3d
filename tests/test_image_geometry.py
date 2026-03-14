@@ -7,7 +7,8 @@ from arkiv_cube_3d import geometry, render_cube
 
 class ImageGeometryTests(unittest.TestCase):
     def test_create_box_configs_uses_pixel_color_and_height_intensity(self):
-        box_configs = geometry.create_box_configs([[((0.2, 0.4, 0.6, 1.0), 0.75)]])
+        height_intensity = 0.75
+        box_configs = geometry.create_box_configs([[((0.2, 0.4, 0.6, 1.0), height_intensity)]])
 
         self.assertEqual(len(box_configs), 31 * 31)
         self.assertEqual(box_configs[0][3], (1.0, 1.0, 1.0, 1.0))
@@ -15,7 +16,7 @@ class ImageGeometryTests(unittest.TestCase):
 
         image_box = box_configs[4 * 31 + 4]
         self.assertEqual(image_box[3], (0.2, 0.4, 0.6, 1.0))
-        self.assertAlmostEqual(image_box[1][2], 1.3 * 0.75 * 0.55)
+        self.assertAlmostEqual(image_box[1][2], geometry.BOX_HEIGHT_MULTIPLIER * height_intensity * geometry.BOX_SPACING)
 
     def test_load_image_heightmap_returns_colors_and_inverted_brightness(self):
         total_pixels = render_cube.HEIGHTMAP_IMAGE_SIZE * render_cube.HEIGHTMAP_IMAGE_SIZE
@@ -57,7 +58,7 @@ class ImageGeometryTests(unittest.TestCase):
         self.assertEqual(pixel_grid[0][0], ((0.0, 0.0, 0.0, 1.0), 1.0))
         self.assertEqual(pixel_grid[0][1], ((1.0, 1.0, 1.0, 0.25), 0.0))
         self.assertEqual(pixel_grid[0][2][0], (0.25, 0.5, 0.75, 0.5))
-        self.assertAlmostEqual(pixel_grid[0][2][1], 0.5)
+        self.assertAlmostEqual(pixel_grid[0][2][1], 1.0 - (0.25 + 0.5 + 0.75) / 3.0)
         self.assertEqual(images.loaded_filepaths, [str(Path("example.png").resolve())])
         self.assertEqual(images.removed, [(image, True)])
 

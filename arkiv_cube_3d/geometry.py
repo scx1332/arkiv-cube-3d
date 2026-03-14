@@ -22,7 +22,7 @@ def create_box_configs(pixel_grid):
 
             try:
                 color, height_intensity = pixel_grid[pixel_row][pixel_column]
-            except (IndexError, TypeError, ValueError):
+            except (IndexError, TypeError):
                 color, height_intensity = DEFAULT_BOX_COLOR, 0.0
 
             box_height = BOX_HEIGHT_MULTIPLIER * height_intensity
