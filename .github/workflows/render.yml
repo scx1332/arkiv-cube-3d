@@ -33,7 +33,14 @@ jobs:
 
       - name: Render the cube
         run: |
-          python -m arkiv_cube_3d render
+          python -m arkiv_cube_3d render --image example.png
+
+      - name: Upload rendered outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: orange-cube-render
+          path: |
+            orange_cube.blend
 
       - name: Add render preview to job summary
         if: ${{ hashFiles('orange_cube.png') != '' }}
@@ -59,10 +66,13 @@ jobs:
               )
           PY
 
+      - name: Render full cube
+        run: |
+          python -m arkiv_cube_3d render --image example.png --full
+
       - name: Upload rendered outputs
         uses: actions/upload-artifact@v4
         with:
           name: orange-cube-render
           path: |
             orange_cube.png
-            orange_cube.blend
