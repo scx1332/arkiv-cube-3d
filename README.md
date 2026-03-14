@@ -34,6 +34,7 @@ python -m arkiv_cube_3d
 # or explicitly:
 python -m arkiv_cube_3d web
 python -m arkiv_cube_3d render  # requires bpy / Blender
+python -m arkiv_cube_3d render --image example.png  # fixed 11x11 grayscale heightmap
 ```
 
 If you're running from a source checkout and want a simple script instead of `-m`, use:

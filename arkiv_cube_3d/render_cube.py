@@ -37,6 +37,8 @@ class RenderParameters:
 DEFAULT_RENDER_PARAMETERS = RenderParameters()
 PREVIEW_RENDER_PARAMETERS = replace(DEFAULT_RENDER_PARAMETERS, samples=16, resolution_x=600, resolution_y=400)
 FULL_RES_RENDER_PARAMETERS = replace(DEFAULT_RENDER_PARAMETERS, resolution_x=2000, resolution_y=1500)
+HEIGHTMAP_IMAGE_SIZE = 11
+HEIGHTMAP_BOX_SIZE = 0.55
 
 
 def is_bpy_available():
@@ -142,12 +144,99 @@ def create_floor(params=DEFAULT_RENDER_PARAMETERS):
     return floor
 
 
-def create_boxes(params=DEFAULT_RENDER_PARAMETERS, custom_colors=None):
-    """Create 5 boxes at different locations for lighting tests, each with a unique color."""
+def create_height_box_geometry(size, height):
+    """Return vertices and faces for a box that starts at z=0 and extends to the given height."""
+    radius = size / 2.0
+    verts = [
+        (-radius, -radius, 0.0),
+        (radius, -radius, 0.0),
+        (radius, radius, 0.0),
+        (-radius, radius, 0.0),
+        (-radius, -radius, height),
+        (radius, -radius, height),
+        (radius, radius, height),
+        (-radius, radius, height),
+    ]
+    faces = [
+        (0, 1, 2, 3),
+        (7, 6, 5, 4),
+        (0, 1, 5, 4),
+        (1, 2, 6, 5),
+        (2, 3, 7, 6),
+        (3, 0, 4, 7),
+    ]
+    return verts, faces
+
+
+def load_image_heightmap(image_path):
+    """Load a fixed 11x11 image through Blender and return grayscale heights."""
+    blender = require_bpy()
+    resolved_path = Path(image_path).expanduser().resolve()
+    image = blender.data.images.load(filepath=str(resolved_path))
+
+    try:
+        width, height = (int(image.size[0]), int(image.size[1]))
+        if (width, height) != (HEIGHTMAP_IMAGE_SIZE, HEIGHTMAP_IMAGE_SIZE):
+            raise ValueError(
+                f"Heightmap image must be {HEIGHTMAP_IMAGE_SIZE}x{HEIGHTMAP_IMAGE_SIZE} pixels; "
+                f"got {width}x{height}."
+            )
+
+        pixels = list(image.pixels[:])
+        heightmap = []
+        for row_index in range(height):
+            row = []
+            for column_index in range(width):
+                pixel_index = ((height - 1 - row_index) * width + column_index) * 4
+                red, green, blue = pixels[pixel_index : pixel_index + 3]
+                row.append((red + green + blue) / 3.0)
+            heightmap.append(row)
+        return heightmap
+    finally:
+        remove_data_block(blender.data.images, image)
+
+
+def create_heightmap_box_configs(heightmap):
+    """Create fixed 11x11 box configs from grayscale heightmap values."""
+    if len(heightmap) != HEIGHTMAP_IMAGE_SIZE or any(len(row) != HEIGHTMAP_IMAGE_SIZE for row in heightmap):
+        raise ValueError(f"Heightmap data must be {HEIGHTMAP_IMAGE_SIZE}x{HEIGHTMAP_IMAGE_SIZE}.")
+
+    origin = -HEIGHTMAP_IMAGE_SIZE / 2 * HEIGHTMAP_BOX_SIZE + 0.5 * HEIGHTMAP_BOX_SIZE
+    box_size = HEIGHTMAP_BOX_SIZE * 0.95
+    box_configs = []
+    box_number = 0
+
+    for row_index, row in enumerate(heightmap):
+        for column_index, grayscale_value in enumerate(row):
+            box_number += 1
+            box_configs.append(
+                (
+                    f"Box {box_number}",
+                    (
+                        column_index * HEIGHTMAP_BOX_SIZE + origin,
+                        (HEIGHTMAP_IMAGE_SIZE - 1 - row_index) * HEIGHTMAP_BOX_SIZE + origin,
+                        0.0,
+                    ),
+                    box_size,
+                    (grayscale_value, grayscale_value, grayscale_value, 1.0),
+                    grayscale_value,
+                )
+            )
+
+    return box_configs
+
+
+def create_boxes(params=DEFAULT_RENDER_PARAMETERS, custom_colors=None, box_configs=None):
+    """Create boxes from the configured layout and colors."""
     blender = require_bpy()
     boxes = []
-    # Enumerate the loop to keep track of the index (i) for our colors list
-    for i, (name, loc, size, color) in enumerate(BOX_CONFIGS):
+    active_box_configs = BOX_CONFIGS if box_configs is None else box_configs
+    for config in active_box_configs:
+        if len(config) == 5:
+            name, loc, size, color, height = config
+        else:
+            name, loc, size, color = config
+            height = None
 
         # 1. Create a UNIQUE material for this specific box
         mat = blender.data.materials.new(name=f"{name}_Material")
@@ -166,7 +255,10 @@ def create_boxes(params=DEFAULT_RENDER_PARAMETERS, custom_colors=None):
             set_material_input(bsdf, ["Emission Strength"], params.box_emission_strength)
 
         # 3. Create the geometry directly in Blender's data blocks
-        verts, faces = create_box_geometry(size)
+        if height is None:
+            verts, faces = create_box_geometry(size)
+        else:
+            verts, faces = create_height_box_geometry(size, height)
 
         # Create Mesh and Object data
         mesh = blender.data.meshes.new(name=f"{name}_Mesh")
@@ -304,11 +396,14 @@ def render(output_path=None):
     return str(output_file)
 
 
-def render_scene(params=DEFAULT_RENDER_PARAMETERS, output_path=None):
+def render_scene(params=DEFAULT_RENDER_PARAMETERS, output_path=None, image_path=None):
     """Set up the scene and render it with the supplied parameters."""
     clear_scene()
     # create_floor(params)
-    create_boxes(params)
+    box_configs = None
+    if image_path is not None:
+        box_configs = create_heightmap_box_configs(load_image_heightmap(image_path))
+    create_boxes(params, box_configs=box_configs)
     setup_lighting(params)
     setup_camera()
     setup_world(params)
@@ -316,13 +411,14 @@ def render_scene(params=DEFAULT_RENDER_PARAMETERS, output_path=None):
     return render(output_path=output_path)
 
 
-def render_fast():
+def render_fast(image_path=None):
     """Main entry point: set up the scene and render boxes on a white floor."""
-    return render_scene(PREVIEW_RENDER_PARAMETERS)
+    return render_scene(DEFAULT_RENDER_PARAMETERS, image_path=image_path)
 
-def render_full():
+
+def render_full(image_path=None):
     """Main entry point: set up the scene and render boxes on a white floor."""
-    return render_scene(FULL_RES_RENDER_PARAMETERS)
+    return render_scene(FULL_RES_RENDER_PARAMETERS, image_path=image_path)
 
 
 if __name__ == "__main__":

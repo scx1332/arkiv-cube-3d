@@ -53,6 +53,10 @@ def _build_parser(argv0: str | None = None) -> argparse.ArgumentParser:
         action="store_true",
         help="Run a full render instead of a fast preview (render command only).",
     )
+    render_parser.add_argument(
+        "--image",
+        help="Load a fixed 11x11 image and use its grayscale values as box heights (render command only).",
+    )
     return parser
 
 
@@ -86,11 +90,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         if args.full:
             print("Starting full render...")
-            out = render_cube.render_full()
+            out = render_cube.render_full(image_path=args.image)
         else:
             print("Starting fast preview render...")
-            out = render_cube.render_fast()
+            out = render_cube.render_fast(image_path=args.image)
         print(f"Render completed: {out}")
+        return 0
     except Exception as exc:  # pragma: no cover - run-time behavior
         print(f"Render failed: {exc}", file=sys.stderr)
         return 4
