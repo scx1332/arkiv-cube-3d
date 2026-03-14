@@ -90,10 +90,10 @@ A workflow is included that automatically renders the cube on push/PR to `main`.
 
 1. Sets up Python 3.11
 2. Installs Blender and bpy via apt and pip
-3. Runs the fast preview render
-4. Embeds the rendered PNG directly in the workflow job summary
-5. Uploads the rendered image and `.blend` scene as build artifacts
+3. Renders each PNG in `letters/` in its own matrix job
+4. Writes a preview image into the workflow job summary for each letter
+5. Uploads uniquely named preview/full PNG and `.blend` outputs as build artifacts
 
 ## Output
 
-The workflow writes `orange_cube.png` and the matching `orange_cube.blend` scene to the current directory. The PNG is shown inline in the GitHub Actions job summary so you can inspect the latest render without downloading the artifact zip, while the artifact remains available for downloading the raw files. Rendered PNGs are postprocessed with a soft light-gray border so they blend more smoothly into a website background.
+Each matrix job renders one image from `letters/` and renames the generated files to match the source image, for example `1_A_preview.png`, `1_A_preview.blend`, `1_A_full.png`, and `1_A_full.blend`. The preview PNG is shown inline in the GitHub Actions job summary so you can inspect the latest render without downloading the artifact zip, while the matching `letters-<image>` artifact keeps the PNG and `.blend` files available for download. Rendered PNGs are postprocessed with a soft light-gray border so they blend more smoothly into a website background.
