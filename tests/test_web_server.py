@@ -103,13 +103,17 @@ class WebServerTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temp_dir:
             output_path = Path(temp_dir) / "renders" / "preview.png"
-            with patch.object(render_cube, "bpy", blender):
+            with (
+                patch.object(render_cube, "bpy", blender),
+                patch.object(render_cube, "postprocess_render_output") as postprocess_render_output,
+            ):
                 result = render_cube.render(output_path=str(output_path))
 
         self.assertEqual(result, str(output_path))
         self.assertEqual(blender.context.scene.render.filepath, str(output_path))
         self.assertEqual(blender.ops.wm.saved_paths, [str(output_path.with_suffix(".blend"))])
         self.assertEqual(blender.ops.render.write_still_calls, [True])
+        postprocess_render_output.assert_called_once_with(output_path)
 
     def test_setup_render_settings_uses_standard_view_transform(self):
         blender = type(

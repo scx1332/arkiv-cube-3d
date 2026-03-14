@@ -96,4 +96,4 @@ A workflow is included that automatically renders the cube on push/PR to `main`.
 
 ## Output
 
-The workflow writes `orange_cube.png` and the matching `orange_cube.blend` scene to the current directory. The PNG is shown inline in the GitHub Actions job summary so you can inspect the latest render without downloading the artifact zip, while the artifact remains available for downloading the raw files.
+The workflow writes `orange_cube.png` and the matching `orange_cube.blend` scene to the current directory. The PNG is shown inline in the GitHub Actions job summary so you can inspect the latest render without downloading the artifact zip, while the artifact remains available for downloading the raw files. Rendered PNGs are postprocessed with a soft light-gray border so they blend more smoothly into a website background.
