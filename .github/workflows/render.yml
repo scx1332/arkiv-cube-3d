@@ -12,6 +12,14 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image_path: letters/1_A.png
+            image_name: 1_A
+          - image_path: letters/2_R.png
+            image_name: 2_R
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -31,48 +39,50 @@ jobs:
           pip install --upgrade pip
           pip install bpy
 
-      - name: Render the cube
+      - name: Render preview for ${{ matrix.image_name }}
         run: |
-          python -m arkiv_cube_3d render --image example.png
+          python -m arkiv_cube_3d render --image "${{ matrix.image_path }}"
+          mv orange_cube.png "${{ matrix.image_name }}_preview.png"
+          mv orange_cube.blend "${{ matrix.image_name }}_preview.blend"
 
-      - name: Upload rendered outputs
-        uses: actions/upload-artifact@v4
-        with:
-          name: orange-cube.blend
-          path: |
-            orange_cube.blend
-
-      - name: Add render preview to job summary
-        if: ${{ hashFiles('orange_cube.png') != '' }}
+      - name: Add ${{ matrix.image_name }} preview to job summary
+        if: ${{ hashFiles(format('{0}_preview.png', matrix.image_name)) != '' }}
         run: |
           python - <<'PY'
           import base64
           import os
           from pathlib import Path
 
-          image_path = Path("orange_cube.png")
+          image_name = os.environ["IMAGE_NAME"]
+          image_path = Path(f"{image_name}_preview.png")
           encoded = base64.b64encode(image_path.read_bytes()).decode("ascii")
           summary_path = Path(os.environ["GITHUB_STEP_SUMMARY"])
 
           with summary_path.open("a", encoding="utf-8") as summary:
-              summary.write("## Fast render preview\n\n")
+              summary.write(f"## Preview render for `{image_name}`\n\n")
               summary.write(
-                  '<img alt="Fast render preview" src="data:image/png;base64,'
-                  f'{encoded}" width="400" />\n\n'
+                  f'<img alt="Preview render for {image_name}" src="data:image/png;base64,{encoded}" width="400" />\n\n'
               )
               summary.write(
-                  "The full `orange_cube.png` and `orange_cube.blend` files remain available "
-                  "in the `orange-cube-render` artifact.\n"
+                  f"The `{image_name}_preview.png` and `{image_name}_preview.blend` files remain available "
+                  f"in the `letters-{image_name}` artifact.\n"
               )
           PY
+        env:
+          IMAGE_NAME: ${{ matrix.image_name }}
 
-      - name: Render full cube
+      - name: Render full image for ${{ matrix.image_name }}
         run: |
-          python -m arkiv_cube_3d render --image example.png --full
+          python -m arkiv_cube_3d render --image "${{ matrix.image_path }}" --full
+          mv orange_cube.png "${{ matrix.image_name }}_full.png"
+          mv orange_cube.blend "${{ matrix.image_name }}_full.blend"
 
-      - name: Upload rendered outputs
+      - name: Upload rendered outputs for ${{ matrix.image_name }}
         uses: actions/upload-artifact@v4
         with:
-          name: orange-cube.png
+          name: letters-${{ matrix.image_name }}
           path: |
-            orange_cube.png
+            ${{ matrix.image_name }}_preview.png
+            ${{ matrix.image_name }}_preview.blend
+            ${{ matrix.image_name }}_full.png
+            ${{ matrix.image_name }}_full.blend
