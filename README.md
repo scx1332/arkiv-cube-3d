@@ -90,9 +90,10 @@ A workflow is included that automatically renders the cube on push/PR to `main`.
 
 1. Sets up Python 3.11
 2. Installs Blender and bpy via apt and pip
-3. Runs the render script
-4. Uploads the rendered image and `.blend` scene as build artifacts
+3. Runs the fast preview render
+4. Embeds the rendered PNG directly in the workflow job summary
+5. Uploads the rendered image and `.blend` scene as build artifacts
 
 ## Output
 
-The script renders `orange_cube.png` (1920×1080) and saves the matching scene as `orange_cube.blend` in the current directory — an orange cube on a white background with three-point area lighting and Cycles ray tracing (128 samples with denoising).
+The workflow writes `orange_cube.png` and the matching `orange_cube.blend` scene to the current directory. The PNG is shown inline in the GitHub Actions job summary so you can inspect the latest render without downloading the artifact zip, while the artifact remains available for downloading the raw files.
