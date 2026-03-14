@@ -36,7 +36,7 @@ class ContainerFilesTests(unittest.TestCase):
         self.assertIn("__pycache__/", dockerignore)
         self.assertIn("dist/", dockerignore)
 
-    def test_render_workflow_renders_each_letter_image_with_unique_output_names(self):
+    def test_render_workflow_uses_matrix_with_unique_outputs(self):
         workflow = (REPO_ROOT / ".github" / "workflows" / "render.yml").read_text()
 
         self.assertIn("letters/1_A.png", workflow)
