@@ -15,13 +15,13 @@ def create_box_configs(pixel_grid):
     box_configs = []
     box_number = 0
 
-    for column_index in range(BOX_GRID_COUNT):
-        for row_index in range(BOX_GRID_COUNT):
-            pixel_column = column_index - BOX_GRID_MARGIN
-            pixel_row = row_index - BOX_GRID_MARGIN
+    for x_index in range(BOX_GRID_COUNT):
+        for y_index in range(BOX_GRID_COUNT):
+            pixel_x = x_index - BOX_GRID_MARGIN
+            pixel_y = y_index - BOX_GRID_MARGIN
 
             try:
-                color, height_intensity = pixel_grid[pixel_row][pixel_column]
+                color, height_intensity = pixel_grid[pixel_y][pixel_x]
             except (IndexError, TypeError):
                 color, height_intensity = DEFAULT_BOX_COLOR, 0.0
 
@@ -31,8 +31,8 @@ def create_box_configs(pixel_grid):
                 (
                     f"Box {box_number}",
                     (
-                        column_index * BOX_SPACING + grid_origin_x,
-                        row_index * BOX_SPACING + grid_origin_y,
+                        x_index * BOX_SPACING + grid_origin_x,
+                        y_index * BOX_SPACING + grid_origin_y,
                         box_height * BOX_SPACING,
                     ),
                     BOX_SPACING * BOX_SCALE,
