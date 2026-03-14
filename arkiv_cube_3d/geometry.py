@@ -1,42 +1,46 @@
 """Pure geometry helpers for Blender mesh construction."""
 
 
+BOX_GRID_COUNT = 31
+BOX_GRID_MARGIN = 4
+BOX_SPACING = 0.55
+BOX_SCALE = 0.95
+BOX_HEIGHT_MULTIPLIER = 1.3
+DEFAULT_BOX_COLOR = (1.0, 1.0, 1.0, 1.0)
 
-def create_box_configs(height):
-    COUNT = 31
-    BOX_SIZE = 0.55
-    BOX_REAL_SIZE_MULTIPLIER = 0.95
-    glob_x = -COUNT / 2 * BOX_SIZE + 0.5 * BOX_SIZE
-    glob_y = -COUNT / 2 * BOX_SIZE + 0.5 * BOX_SIZE
-    arr = []
-    box_no = 0
-    for i in range(0, COUNT):
-        for j in range(0, COUNT):
-            #z = 5 - 0.1 * ((i - COUNT/2) * (i - COUNT/2) + (j - COUNT/2) * (j - COUNT/2))
-            #if z < 0:
-            #    z = 0
-            #if i % 2 == 1 and j % 2 == 1 and i > 4 and j > 4 and i < COUNT - 4 and j < COUNT - 4:
-            arr_x = i - 4
-            arr_y = j - 4
+
+def create_box_configs(pixel_grid):
+    grid_origin_x = -BOX_GRID_COUNT / 2 * BOX_SPACING + 0.5 * BOX_SPACING
+    grid_origin_y = -BOX_GRID_COUNT / 2 * BOX_SPACING + 0.5 * BOX_SPACING
+    box_configs = []
+    box_number = 0
+
+    for x_index in range(BOX_GRID_COUNT):
+        for y_index in range(BOX_GRID_COUNT):
+            pixel_x = x_index - BOX_GRID_MARGIN
+            pixel_y = y_index - BOX_GRID_MARGIN
 
             try:
-                h = height[arr_y][arr_x]
-            except:
-                h = 1.0
+                color, height_intensity = pixel_grid[pixel_y][pixel_x]
+            except (IndexError, TypeError):
+                color, height_intensity = DEFAULT_BOX_COLOR, 0.0
 
-            z = 1.3 * (1.0 - h)
-            if z > 0.1:
-                color = (0.8, 0.35, 0.0, 1.0)
-            else:
-                color = (1.0, 1.0, 1.0, 1.0)
-            #else:
-            #    z = 0
-            #    color = (1.0, 1.0, 1.0, 1.0)
+            box_height = BOX_HEIGHT_MULTIPLIER * height_intensity
+            box_number += 1
+            box_configs.append(
+                (
+                    f"Box {box_number}",
+                    (
+                        x_index * BOX_SPACING + grid_origin_x,
+                        y_index * BOX_SPACING + grid_origin_y,
+                        box_height * BOX_SPACING,
+                    ),
+                    BOX_SPACING * BOX_SCALE,
+                    color,
+                )
+            )
 
-
-            box_no += 1
-            arr.append((f"Box {box_no}", (i  * BOX_SIZE + glob_x, j * BOX_SIZE + glob_y, z * BOX_SIZE), BOX_SIZE * BOX_REAL_SIZE_MULTIPLIER, color))
-    return arr
+    return box_configs
 
 
 def create_floor_geometry(size=100.0):
