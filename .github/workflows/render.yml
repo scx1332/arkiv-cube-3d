@@ -33,7 +33,31 @@ jobs:
 
       - name: Render the cube
         run: |
-          python -m arkiv_cube_3d render --full
+          python -m arkiv_cube_3d render
+
+      - name: Add render preview to job summary
+        if: ${{ hashFiles('orange_cube.png') != '' }}
+        run: |
+          python - <<'PY'
+          import base64
+          import os
+          from pathlib import Path
+
+          image_path = Path("orange_cube.png")
+          encoded = base64.b64encode(image_path.read_bytes()).decode("ascii")
+          summary_path = Path(os.environ["GITHUB_STEP_SUMMARY"])
+
+          with summary_path.open("a", encoding="utf-8") as summary:
+              summary.write("## Fast render preview\n\n")
+              summary.write(
+                  '<img alt="Fast render preview" src="data:image/png;base64,'
+                  f'{encoded}" width="400" />\n\n'
+              )
+              summary.write(
+                  "The full `orange_cube.png` and `orange_cube.blend` files remain available "
+                  "in the `orange-cube-render` artifact.\n"
+              )
+          PY
 
       - name: Upload rendered outputs
         uses: actions/upload-artifact@v4

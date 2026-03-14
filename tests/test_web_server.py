@@ -111,6 +111,13 @@ class WebServerTests(unittest.TestCase):
         self.assertEqual(blender.ops.wm.saved_paths, [str(output_path.with_suffix(".blend"))])
         self.assertEqual(blender.ops.render.write_still_calls, [True])
 
+    def test_render_fast_uses_preview_render_parameters(self):
+        with patch.object(render_cube, "render_scene", return_value="preview.png") as render_scene:
+            result = render_cube.render_fast()
+
+        self.assertEqual(result, "preview.png")
+        render_scene.assert_called_once_with(PREVIEW_RENDER_PARAMETERS)
+
     def test_clear_scene_removes_unused_blender_data_blocks(self):
         class DataCollection(list):
             def __init__(self, items):

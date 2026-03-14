@@ -36,6 +36,15 @@ class ContainerFilesTests(unittest.TestCase):
         self.assertIn("__pycache__/", dockerignore)
         self.assertIn("dist/", dockerignore)
 
+    def test_render_workflow_embeds_fast_preview_in_job_summary(self):
+        workflow = (REPO_ROOT / ".github" / "workflows" / "render.yml").read_text()
+
+        self.assertIn("python -m arkiv_cube_3d render", workflow)
+        self.assertNotIn("python -m arkiv_cube_3d render --full", workflow)
+        self.assertIn("GITHUB_STEP_SUMMARY", workflow)
+        self.assertIn("data:image/png;base64,", workflow)
+        self.assertIn("orange_cube.blend", workflow)
+
 
 if __name__ == "__main__":
     unittest.main()
