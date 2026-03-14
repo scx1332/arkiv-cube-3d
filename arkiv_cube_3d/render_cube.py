@@ -5,9 +5,9 @@ import os
 from pathlib import Path
 
 try:
-    from .geometry import BOX_CONFIGS, create_box_geometry, create_floor_geometry
+    from .geometry import create_box_geometry, create_floor_geometry, create_box_configs
 except ImportError:  # pragma: no cover - supports direct script execution
-    from geometry import BOX_CONFIGS, create_box_geometry, create_floor_geometry
+    from geometry import create_box_geometry, create_floor_geometry
 
 try:
     import bpy
@@ -187,7 +187,7 @@ def load_image_heightmap(image_path):
         for row_index in range(height):
             row = []
             for column_index in range(width):
-                pixel_index = ((height - 1 - row_index) * width + column_index) * 4
+                pixel_index = (row_index * width + column_index) * 4
                 red, green, blue = pixels[pixel_index : pixel_index + 3]
                 row.append((red + green + blue) / 3.0)
             heightmap.append(row)
@@ -196,41 +196,11 @@ def load_image_heightmap(image_path):
         remove_data_block(blender.data.images, image)
 
 
-def create_heightmap_box_configs(heightmap):
-    """Create fixed 11x11 box configs from grayscale heightmap values."""
-    if len(heightmap) != HEIGHTMAP_IMAGE_SIZE or any(len(row) != HEIGHTMAP_IMAGE_SIZE for row in heightmap):
-        raise ValueError(f"Heightmap data must be {HEIGHTMAP_IMAGE_SIZE}x{HEIGHTMAP_IMAGE_SIZE}.")
-
-    origin = -HEIGHTMAP_IMAGE_SIZE / 2 * HEIGHTMAP_BOX_SIZE + 0.5 * HEIGHTMAP_BOX_SIZE
-    box_size = HEIGHTMAP_BOX_SIZE * 0.95
-    box_configs = []
-    box_number = 0
-
-    for row_index, row in enumerate(heightmap):
-        for column_index, grayscale_value in enumerate(row):
-            box_number += 1
-            box_configs.append(
-                (
-                    f"Box {box_number}",
-                    (
-                        column_index * HEIGHTMAP_BOX_SIZE + origin,
-                        (HEIGHTMAP_IMAGE_SIZE - 1 - row_index) * HEIGHTMAP_BOX_SIZE + origin,
-                        0.0,
-                    ),
-                    box_size,
-                    (grayscale_value, grayscale_value, grayscale_value, 1.0),
-                    grayscale_value,
-                )
-            )
-
-    return box_configs
-
-
-def create_boxes(params=DEFAULT_RENDER_PARAMETERS, custom_colors=None, box_configs=None):
+def create_boxes(params=DEFAULT_RENDER_PARAMETERS, box_configs=None):
     """Create boxes from the configured layout and colors."""
     blender = require_bpy()
     boxes = []
-    active_box_configs = BOX_CONFIGS if box_configs is None else box_configs
+    active_box_configs = create_box_configs(box_configs)
     for config in active_box_configs:
         if len(config) == 5:
             name, loc, size, color, height = config
@@ -255,10 +225,7 @@ def create_boxes(params=DEFAULT_RENDER_PARAMETERS, custom_colors=None, box_confi
             set_material_input(bsdf, ["Emission Strength"], params.box_emission_strength)
 
         # 3. Create the geometry directly in Blender's data blocks
-        if height is None:
-            verts, faces = create_box_geometry(size)
-        else:
-            verts, faces = create_height_box_geometry(size, height)
+        verts, faces = create_box_geometry(size)
 
         # Create Mesh and Object data
         mesh = blender.data.meshes.new(name=f"{name}_Mesh")
@@ -402,7 +369,7 @@ def render_scene(params=DEFAULT_RENDER_PARAMETERS, output_path=None, image_path=
     # create_floor(params)
     box_configs = None
     if image_path is not None:
-        box_configs = create_heightmap_box_configs(load_image_heightmap(image_path))
+        box_configs = load_image_heightmap(image_path)
     create_boxes(params, box_configs=box_configs)
     setup_lighting(params)
     setup_camera()
