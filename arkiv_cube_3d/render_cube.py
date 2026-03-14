@@ -318,7 +318,7 @@ def render_scene(params=DEFAULT_RENDER_PARAMETERS, output_path=None):
 
 def render_fast():
     """Main entry point: set up the scene and render boxes on a white floor."""
-    return render_scene(DEFAULT_RENDER_PARAMETERS)
+    return render_scene(PREVIEW_RENDER_PARAMETERS)
 
 def render_full():
     """Main entry point: set up the scene and render boxes on a white floor."""
