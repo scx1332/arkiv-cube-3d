@@ -30,12 +30,12 @@ class RenderParameters:
     fill_light_energy: float = 50.0
     rim_light_energy: float = 100.0
     samples: int = 128
-    resolution_x: int = 600
+    resolution_x: int = 400
     resolution_y: int = 400
 
 
 DEFAULT_RENDER_PARAMETERS = RenderParameters()
-PREVIEW_RENDER_PARAMETERS = replace(DEFAULT_RENDER_PARAMETERS, samples=32, resolution_x=600, resolution_y=400)
+PREVIEW_RENDER_PARAMETERS = replace(DEFAULT_RENDER_PARAMETERS, samples=16, resolution_x=600, resolution_y=400)
 FULL_RES_RENDER_PARAMETERS = replace(DEFAULT_RENDER_PARAMETERS, resolution_x=2000, resolution_y=1500)
 
 
@@ -142,26 +142,30 @@ def create_floor(params=DEFAULT_RENDER_PARAMETERS):
     return floor
 
 
-def create_boxes(params=DEFAULT_RENDER_PARAMETERS):
-    """Create 5 boxes at different locations for lighting tests without UI context."""
+def create_boxes(params=DEFAULT_RENDER_PARAMETERS, custom_colors=None):
+    """Create 5 boxes at different locations for lighting tests, each with a unique color."""
     blender = require_bpy()
     boxes = []
+    # Enumerate the loop to keep track of the index (i) for our colors list
+    for i, (name, loc, size, color) in enumerate(BOX_CONFIGS):
 
-    # 2. Optimized: Create the material ONCE before the loop
-    mat = blender.data.materials.new(name="BoxTestMaterial")
-    mat.use_nodes = True
-    bsdf = mat.node_tree.nodes.get("Principled BSDF")
+        # 1. Create a UNIQUE material for this specific box
+        mat = blender.data.materials.new(name=f"{name}_Material")
+        mat.use_nodes = True
+        bsdf = mat.node_tree.nodes.get("Principled BSDF")
 
-    # Safety check in case the BSDF node isn't found
-    if bsdf:
-        bsdf.inputs["Base Color"].default_value = params.box_color
-        set_material_input(bsdf, ["Roughness"], params.box_roughness)
-        set_material_input(bsdf, ["Metallic"], params.box_metallic)
-        set_material_input(bsdf, ["Specular IOR Level", "Specular"], params.box_specular)
-        set_material_input(bsdf, ["Emission Strength"], params.box_emission_strength)
+        if bsdf:
 
-    # 3. Create the geometry directly in Blender's data blocks
-    for name, loc, size in BOX_CONFIGS:
+            # Apply the unique color
+            bsdf.inputs["Base Color"].default_value = color
+
+            # Apply the shared parameters to this specific material
+            set_material_input(bsdf, ["Roughness"], params.box_roughness)
+            set_material_input(bsdf, ["Metallic"], params.box_metallic)
+            set_material_input(bsdf, ["Specular IOR Level", "Specular"], params.box_specular)
+            set_material_input(bsdf, ["Emission Strength"], params.box_emission_strength)
+
+        # 3. Create the geometry directly in Blender's data blocks
         verts, faces = create_box_geometry(size)
 
         # Create Mesh and Object data
@@ -175,7 +179,7 @@ def create_boxes(params=DEFAULT_RENDER_PARAMETERS):
         # Link to scene so it is visible/renderable
         blender.context.scene.collection.objects.link(box)
 
-        # Assign the shared material
+        # Assign the newly created unique material
         box.data.materials.append(mat)
         boxes.append(box)
 
@@ -232,7 +236,7 @@ def setup_camera():
     # --- Camera ---
     cam_data = blender.data.cameras.new("Camera")
     camera = blender.data.objects.new("Camera", object_data=cam_data)
-    camera.location = (0, -3, 20)
+    camera.location = (0, -0.01, 20)
     scene_collection.objects.link(camera)
 
     # --- Constraints ---
@@ -303,7 +307,7 @@ def render(output_path=None):
 def render_scene(params=DEFAULT_RENDER_PARAMETERS, output_path=None):
     """Set up the scene and render it with the supplied parameters."""
     clear_scene()
-    create_floor(params)
+    # create_floor(params)
     create_boxes(params)
     setup_lighting(params)
     setup_camera()

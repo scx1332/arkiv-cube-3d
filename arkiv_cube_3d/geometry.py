@@ -1,20 +1,38 @@
 """Pure geometry helpers for Blender mesh construction."""
 
 
-BOX_DEFAULT_SIZE = 1.9
-BOX_CONFIGS = [
-    ("Box_",(0, 0-10, 1.0), BOX_DEFAULT_SIZE),
-    ("Box_",(0, 4-10, 1.0), BOX_DEFAULT_SIZE),
-    ("Box_",(0, 8-10, 1.0), BOX_DEFAULT_SIZE),
-    ("Box_",(0, 12-10, 1.0), BOX_DEFAULT_SIZE),
-    ("Box_",(0, 16-10, 1.0), BOX_DEFAULT_SIZE),
-    ("Box_",(0-10, 0, 1.0), BOX_DEFAULT_SIZE),
-    ("Box_",(4-10, 0, 1.0), BOX_DEFAULT_SIZE),
-    ("Box_",(8-10, 0, 1.0), BOX_DEFAULT_SIZE),
-    ("Box_",(12-10, 0, 1.0), BOX_DEFAULT_SIZE),
-    ("Box_",(16-10, 0, 1.0), BOX_DEFAULT_SIZE),
-]
+BOX_DEFAULT_SIZE = 0.95
+#BOX_CONFIGS = [
+#    ("Box_",(0, 0-10, 1.0), BOX_DEFAULT_SIZE),
+#    ("Box_",(0, 4-10, 1.0), BOX_DEFAULT_SIZE),
+#]
 
+def create_box_configs():
+    COUNT = 31
+    BOX_SIZE = 0.55
+    glob_x = -COUNT / 2 * BOX_SIZE + 0.5 * BOX_SIZE
+    glob_y = -COUNT / 2 * BOX_SIZE + 0.5 * BOX_SIZE
+    arr = []
+    box_no = 0
+    for i in range(0, COUNT):
+        for j in range(0, COUNT):
+            #z = 5 - 0.1 * ((i - COUNT/2) * (i - COUNT/2) + (j - COUNT/2) * (j - COUNT/2))
+            #if z < 0:
+            #    z = 0
+            if i % 2 == 1 and j % 2 == 1 and i > 4 and j > 4 and i < COUNT - 4 and j < COUNT - 4:
+                z = 0.3
+                color = (0.8, 0.35, 0.0, 1.0)
+            else:
+                z = 0
+                color = (1.0, 1.0, 1.0, 1.0)
+
+
+            box_no += 1
+            arr.append((f"Box {box_no}", (i  * BOX_SIZE + glob_x, j * BOX_SIZE + glob_y, z * BOX_SIZE), BOX_SIZE * 0.95, color))
+    return arr
+
+
+BOX_CONFIGS = create_box_configs()
 
 def create_floor_geometry(size=100.0):
     """Return vertices and faces for a square floor plane."""
@@ -32,15 +50,16 @@ def create_floor_geometry(size=100.0):
 def create_box_geometry(size):
     """Return vertices and faces for a cube centered at the origin with the given edge length."""
     radius = size / 2.0
+    height = 2
     verts = [
-        (-radius, -radius, -radius),
-        (radius, -radius, -radius),
-        (radius, radius, -radius),
-        (-radius, radius, -radius),
-        (-radius, -radius, radius),
-        (radius, -radius, radius),
-        (radius, radius, radius),
-        (-radius, radius, radius),
+        (-radius, -radius, -height),
+        (radius, -radius, -height),
+        (radius, radius, -height),
+        (-radius, radius, -height),
+        (-radius, -radius, height),
+        (radius, -radius, height),
+        (radius, radius, height),
+        (-radius, radius, height),
     ]
     faces = [
         (0, 1, 2, 3),
