@@ -1,8 +1,11 @@
 """Render boxes on a white floor with lighting and ray tracing using Blender."""
 
+import binascii
 from dataclasses import dataclass, replace
 import os
 from pathlib import Path
+import struct
+import zlib
 
 try:
     from .geometry import create_box_geometry, create_floor_geometry, create_box_configs
@@ -39,6 +42,9 @@ PREVIEW_RENDER_PARAMETERS = replace(DEFAULT_RENDER_PARAMETERS, samples=16, resol
 FULL_RES_RENDER_PARAMETERS = replace(DEFAULT_RENDER_PARAMETERS, resolution_x=2000, resolution_y=2000)
 HEIGHTMAP_IMAGE_SIZE = 23
 HEIGHTMAP_BOX_SIZE = 0.55
+SOFT_BORDER_COLOR = (0.96, 0.96, 0.96, 1.0)
+SOFT_BORDER_RATIO = 0.06
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
 
 def is_bpy_available():
@@ -195,6 +201,200 @@ def load_image_heightmap(image_path):
         return pixel_grid
     finally:
         remove_data_block(blender.data.images, image)
+
+
+def _paeth_predictor(left, up, up_left):
+    """Return the Paeth predictor for PNG filter reconstruction."""
+    base = left + up - up_left
+    left_distance = abs(base - left)
+    up_distance = abs(base - up)
+    up_left_distance = abs(base - up_left)
+    if left_distance <= up_distance and left_distance <= up_left_distance:
+        return left
+    if up_distance <= up_left_distance:
+        return up
+    return up_left
+
+
+def _read_png_rgba(path):
+    """Read a non-interlaced 8-bit PNG into RGBA rows."""
+    content = Path(path).read_bytes()
+    if not content.startswith(PNG_SIGNATURE):
+        raise ValueError("Only PNG render outputs are supported for postprocessing.")
+
+    width = height = bit_depth = color_type = None
+    chunks = []
+    position = len(PNG_SIGNATURE)
+    while position < len(content):
+        chunk_length = struct.unpack(">I", content[position : position + 4])[0]
+        position += 4
+        chunk_type = content[position : position + 4]
+        position += 4
+        chunk_data = content[position : position + chunk_length]
+        position += chunk_length + 4  # skip data and CRC
+
+        if chunk_type == b"IHDR":
+            width, height, bit_depth, color_type, compression, filter_method, interlace = struct.unpack(
+                ">IIBBBBB", chunk_data
+            )
+            if bit_depth != 8 or color_type not in {2, 6}:
+                raise ValueError("Postprocessing only supports 8-bit RGB or RGBA PNG images.")
+            if compression != 0 or filter_method != 0 or interlace != 0:
+                raise ValueError("Postprocessing only supports standard non-interlaced PNG images.")
+        elif chunk_type == b"IDAT":
+            chunks.append(chunk_data)
+        elif chunk_type == b"IEND":
+            break
+
+    if width is None or height is None:
+        raise ValueError("PNG is missing an IHDR header.")
+
+    bytes_per_pixel = 4 if color_type == 6 else 3
+    stride = width * bytes_per_pixel
+    decoded = zlib.decompress(b"".join(chunks))
+    rows = []
+    offset = 0
+    previous_row = bytearray(stride)
+
+    for _ in range(height):
+        filter_type = decoded[offset]
+        offset += 1
+        row = bytearray(decoded[offset : offset + stride])
+        offset += stride
+
+        if filter_type == 1:
+            for index in range(bytes_per_pixel, stride):
+                row[index] = (row[index] + row[index - bytes_per_pixel]) & 0xFF
+        elif filter_type == 2:
+            for index in range(stride):
+                row[index] = (row[index] + previous_row[index]) & 0xFF
+        elif filter_type == 3:
+            for index in range(stride):
+                left = row[index - bytes_per_pixel] if index >= bytes_per_pixel else 0
+                row[index] = (row[index] + ((left + previous_row[index]) // 2)) & 0xFF
+        elif filter_type == 4:
+            for index in range(stride):
+                left = row[index - bytes_per_pixel] if index >= bytes_per_pixel else 0
+                up = previous_row[index]
+                up_left = previous_row[index - bytes_per_pixel] if index >= bytes_per_pixel else 0
+                row[index] = (row[index] + _paeth_predictor(left, up, up_left)) & 0xFF
+        elif filter_type != 0:
+            raise ValueError(f"Unsupported PNG filter type: {filter_type}")
+
+        if color_type == 2:
+            rgba_row = bytearray(width * 4)
+            for index in range(width):
+                source_index = index * 3
+                target_index = index * 4
+                rgba_row[target_index : target_index + 4] = row[source_index : source_index + 3] + b"\xFF"
+            rows.append(rgba_row)
+        else:
+            rows.append(bytearray(row))
+        previous_row = row
+
+    return width, height, rows
+
+
+def _png_chunk(chunk_type, data):
+    """Return a serialized PNG chunk."""
+    return (
+        struct.pack(">I", len(data))
+        + chunk_type
+        + data
+        + struct.pack(">I", binascii.crc32(chunk_type + data) & 0xFFFFFFFF)
+    )
+
+
+def _write_png_rgba(path, width, height, rows):
+    """Write RGBA rows to an 8-bit non-interlaced PNG file."""
+    raw = bytearray()
+    for row in rows:
+        raw.append(0)
+        raw.extend(row)
+
+    payload = zlib.compress(bytes(raw))
+    header = struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)
+    Path(path).write_bytes(
+        PNG_SIGNATURE
+        + _png_chunk(b"IHDR", header)
+        + _png_chunk(b"IDAT", payload)
+        + _png_chunk(b"IEND", b"")
+    )
+
+
+def _smoothstep(value):
+    """Return a smooth interpolation curve between 0 and 1."""
+    clamped = min(max(value, 0.0), 1.0)
+    return clamped * clamped * (3.0 - 2.0 * clamped)
+
+
+def _rgba_float_to_bytes(color):
+    """Convert an RGBA float tuple to 8-bit RGBA bytes."""
+    return tuple(max(0, min(255, round(channel * 255))) for channel in color)
+
+
+def add_soft_border_rgba(width, height, rows, border_width, border_color):
+    """Return a new image with a soft solid-color border around the source image."""
+    if border_width <= 0:
+        return width, height, rows
+
+    output_width = width + border_width * 2
+    output_height = height + border_width * 2
+    output_rows = []
+
+    for output_y in range(output_height):
+        source_y = min(max(output_y - border_width, 0), height - 1)
+        source_row = rows[source_y]
+        distance_y = 0
+        if output_y < border_width:
+            distance_y = border_width - output_y
+        elif output_y >= border_width + height:
+            distance_y = output_y - (border_width + height) + 1
+
+        output_row = bytearray(output_width * 4)
+        for output_x in range(output_width):
+            source_x = min(max(output_x - border_width, 0), width - 1)
+            source_index = source_x * 4
+            output_index = output_x * 4
+
+            distance_x = 0
+            if output_x < border_width:
+                distance_x = border_width - output_x
+            elif output_x >= border_width + width:
+                distance_x = output_x - (border_width + width) + 1
+
+            if distance_x == 0 and distance_y == 0:
+                output_row[output_index : output_index + 4] = source_row[source_index : source_index + 4]
+                continue
+
+            blend_amount = _smoothstep(max(distance_x, distance_y) / border_width)
+            for channel in range(4):
+                source_value = source_row[source_index + channel]
+                border_value = border_color[channel]
+                output_row[output_index + channel] = round(
+                    source_value + (border_value - source_value) * blend_amount
+                )
+        output_rows.append(output_row)
+
+    return output_width, output_height, output_rows
+
+
+def postprocess_render_output(output_path, border_width=None, border_color=SOFT_BORDER_COLOR):
+    """Add a soft solid-color border to the rendered PNG output."""
+    output_file = Path(output_path)
+    width, height, rows = _read_png_rgba(output_file)
+    if border_width is None:
+        border_width = max(1, round(min(width, height) * SOFT_BORDER_RATIO))
+
+    processed_width, processed_height, processed_rows = add_soft_border_rgba(
+        width,
+        height,
+        rows,
+        border_width=border_width,
+        border_color=_rgba_float_to_bytes(border_color),
+    )
+    _write_png_rgba(output_file, processed_width, processed_height, processed_rows)
+    return str(output_file)
 
 
 def create_boxes(params=DEFAULT_RENDER_PARAMETERS, pixel_grid=None):
@@ -372,6 +572,7 @@ def render(output_path=None):
     blender.context.scene.render.filepath = str(output_file)
     blender.ops.wm.save_as_mainfile(filepath=str(blend_path))
     blender.ops.render.render(write_still=True)
+    postprocess_render_output(output_file)
     print(f"Render saved to: {output_file}")
     print(f"Blend scene saved to: {blend_path}")
     return str(output_file)
