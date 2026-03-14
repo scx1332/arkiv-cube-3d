@@ -32,7 +32,7 @@ class RenderParameters:
     key_light_energy: float = 0.0
     fill_light_energy: float = 5000.0
     rim_light_energy: float = 100.0
-    samples: int = 256
+    samples: int = 64
     resolution_x: int = 400
     resolution_y: int = 400
 
