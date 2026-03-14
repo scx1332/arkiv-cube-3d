@@ -3,7 +3,6 @@
 
 
 def create_box_configs(height):
-    print(height)
     COUNT = 31
     BOX_SIZE = 0.55
     BOX_REAL_SIZE_MULTIPLIER = 0.95
@@ -16,18 +15,23 @@ def create_box_configs(height):
             #z = 5 - 0.1 * ((i - COUNT/2) * (i - COUNT/2) + (j - COUNT/2) * (j - COUNT/2))
             #if z < 0:
             #    z = 0
-            if i % 2 == 1 and j % 2 == 1 and i > 4 and j > 4 and i < COUNT - 4 and j < COUNT - 4:
-                arr_x = int(i / 2 - 2)
-                arr_y = int(j / 2 - 2)
+            #if i % 2 == 1 and j % 2 == 1 and i > 4 and j > 4 and i < COUNT - 4 and j < COUNT - 4:
+            arr_x = i - 4
+            arr_y = j - 4
 
-                z = 1.3 * (1.0 - height[arr_y][arr_x])
-                if z > 0.1:
-                    color = (0.8, 0.35, 0.0, 1.0)
-                else:
-                    color = (1.0, 1.0, 1.0, 1.0)
+            try:
+                h = height[arr_y][arr_x]
+            except:
+                h = 1.0
+
+            z = 1.3 * (1.0 - h)
+            if z > 0.1:
+                color = (0.8, 0.35, 0.0, 1.0)
             else:
-                z = 0
                 color = (1.0, 1.0, 1.0, 1.0)
+            #else:
+            #    z = 0
+            #    color = (1.0, 1.0, 1.0, 1.0)
 
 
             box_no += 1
