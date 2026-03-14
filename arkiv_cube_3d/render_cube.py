@@ -308,7 +308,7 @@ def setup_camera():
     # --- Camera ---
     cam_data = blender.data.cameras.new("Camera")
     camera = blender.data.objects.new("Camera", object_data=cam_data)
-    camera.location = (0, -0.01, 30)
+    camera.location = (0, -0.01, 26)
     scene_collection.objects.link(camera)
 
     # --- Constraints ---
