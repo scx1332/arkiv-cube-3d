@@ -29,8 +29,8 @@ class RenderParameters:
     box_emission_strength: float = 0.0
     floor_roughness: float = 0.5
     world_strength: float = 0.1
-    key_light_energy: float = 600.0
-    fill_light_energy: float = 1500.0
+    key_light_energy: float = 0.0
+    fill_light_energy: float = 5000.0
     rim_light_energy: float = 100.0
     samples: int = 128
     resolution_x: int = 400
@@ -42,7 +42,7 @@ PREVIEW_RENDER_PARAMETERS = replace(DEFAULT_RENDER_PARAMETERS, samples=16, resol
 FULL_RES_RENDER_PARAMETERS = replace(DEFAULT_RENDER_PARAMETERS, resolution_x=2000, resolution_y=2000)
 HEIGHTMAP_IMAGE_SIZE = 23
 HEIGHTMAP_BOX_SIZE = 0.55
-SOFT_BORDER_COLOR = (0.96, 0.96, 0.96, 1.0)
+SOFT_BORDER_COLOR = (0.9, 0.9, 0.9, 1.0)
 SOFT_BORDER_RATIO = 0.06
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
@@ -379,20 +379,65 @@ def add_soft_border_rgba(width, height, rows, border_width, border_color):
     return output_width, output_height, output_rows
 
 
+from pathlib import Path
+
+def apply_feathered_inner_border(width, height, rows, border_width, border_color):
+    """
+    Applies a seamless gradient border inside the image boundaries.
+    Assumes `rows` is a list of bytearrays (or mutable lists) where each
+    element is a sequence of [R, G, B, A, R, G, B, A...].
+    """
+    br, bg, bb, ba = border_color
+
+    for y in range(height):
+        for x in range(width):
+            # Calculate distance to the nearest edge
+            dist_x = min(x, width - 1 - x)
+            dist_y = min(y, height - 1 - y)
+            min_dist = min(dist_x, dist_y)
+
+            # If the pixel is within the border width, apply the blend
+            if min_dist < border_width:
+                # Linear interpolation ratio:
+                # 0.0 at the absolute edge, 1.0 at the inner boundary
+                ratio = min_dist / float(border_width)
+                inv_ratio = 1.0 - ratio
+
+                idx = x * 4
+
+                # Extract original pixel colors
+                r = rows[y][idx]
+                g = rows[y][idx + 1]
+                b = rows[y][idx + 2]
+                a = rows[y][idx + 3]
+
+                # Blend original color with the border color
+                rows[y][idx]     = int((r * ratio) + (br * inv_ratio))
+                rows[y][idx + 1] = int((g * ratio) + (bg * inv_ratio))
+                rows[y][idx + 2] = int((b * ratio) + (bb * inv_ratio))
+                rows[y][idx + 3] = int((a * ratio) + (ba * inv_ratio))
+
+    # Width and height remain unchanged
+    return width, height, rows
+
 def postprocess_render_output(output_path, border_width=None, border_color=SOFT_BORDER_COLOR):
-    """Add a soft solid-color border to the rendered PNG output."""
+    """Add a seamless soft inner border to the rendered PNG output."""
+    print("Running postprocess step")
     output_file = Path(output_path)
     width, height, rows = _read_png_rgba(output_file)
+
     if border_width is None:
         border_width = max(1, round(min(width, height) * SOFT_BORDER_RATIO))
 
-    processed_width, processed_height, processed_rows = add_soft_border_rgba(
+    # Apply the inner fade instead of adding new canvas space
+    processed_width, processed_height, processed_rows = apply_feathered_inner_border(
         width,
         height,
         rows,
         border_width=border_width,
         border_color=_rgba_float_to_bytes(border_color),
     )
+
     _write_png_rgba(output_file, processed_width, processed_height, processed_rows)
     return str(output_file)
 
