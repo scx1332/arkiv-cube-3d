@@ -111,6 +111,55 @@ class WebServerTests(unittest.TestCase):
         self.assertEqual(blender.ops.wm.saved_paths, [str(output_path.with_suffix(".blend"))])
         self.assertEqual(blender.ops.render.write_still_calls, [True])
 
+    def test_setup_render_settings_uses_standard_view_transform(self):
+        blender = type(
+            "Blender",
+            (),
+            {
+                "context": type(
+                    "Context",
+                    (),
+                    {
+                        "scene": type(
+                            "Scene",
+                            (),
+                            {
+                                "render": type(
+                                    "Render",
+                                    (),
+                                    {
+                                        "engine": None,
+                                        "resolution_x": None,
+                                        "resolution_y": None,
+                                        "resolution_percentage": None,
+                                        "image_settings": type(
+                                            "ImageSettings",
+                                            (),
+                                            {"file_format": None, "color_mode": None},
+                                        )(),
+                                    },
+                                )(),
+                                "cycles": type(
+                                    "Cycles",
+                                    (),
+                                    {"device": None, "samples": None, "use_denoising": None},
+                                )(),
+                                "view_settings": type("ViewSettings", (), {"view_transform": None})(),
+                            },
+                        )()
+                    },
+                )()
+            },
+        )()
+
+        with patch.object(render_cube, "bpy", blender):
+            render_cube.setup_render_settings(PREVIEW_RENDER_PARAMETERS)
+
+        self.assertEqual(blender.context.scene.view_settings.view_transform, "Standard")
+        self.assertEqual(blender.context.scene.cycles.samples, PREVIEW_RENDER_PARAMETERS.samples)
+        self.assertEqual(blender.context.scene.render.image_settings.file_format, "PNG")
+        self.assertEqual(blender.context.scene.render.image_settings.color_mode, "RGBA")
+
     def test_render_fast_uses_preview_render_parameters(self):
         with patch.object(render_cube, "render_scene", return_value="preview.png") as render_scene:
             result = render_cube.render_fast()

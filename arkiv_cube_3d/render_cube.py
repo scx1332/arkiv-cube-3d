@@ -350,6 +350,7 @@ def setup_render_settings(params=DEFAULT_RENDER_PARAMETERS):
     scene.cycles.device = "CPU"
     scene.cycles.samples = params.samples
     scene.cycles.use_denoising = True
+    scene.view_settings.view_transform = "Standard"
 
     scene.render.resolution_x = params.resolution_x
     scene.render.resolution_y = params.resolution_y
