@@ -10,15 +10,11 @@ Dimensions: TypeAlias = tuple[float, float, float]
 InputPixel: TypeAlias = tuple[Color, float]
 
 # --- Constants ---
-BOX_GRID_COUNT = 31
-BOX_GRID_MARGIN = 4
 BOX_SPACING_BASE = 19.8
 BOX_SCALE = 0.95
-BOX_HEIGHT_MULTIPLIER = 1.3
-DEFAULT_BOX_COLOR: Color = (1.0, 1.0, 1.0, 1.0)
-
-# Derived constant to replace the magic number '23'
-ACTIVE_GRID_SIZE = BOX_GRID_COUNT - (2 * BOX_GRID_MARGIN)
+BOX_HEIGHT_MULTIPLIER = 2.5
+BOX_OVER_FLOOR_OFFSET_MULT = 0.1
+BOX_UNDER_FLOOR_OFFSET_MULT = 0.2
 
 @dataclass
 class BoxConfig:
@@ -32,9 +28,6 @@ class BoxConfig:
 def create_box_configs(pixel_grid: list[list[InputPixel]]) -> list[BoxConfig]:
     """Generates a grid of box configurations based on pixel height and color data."""
     # Calculate the starting coordinate to center the grid at (0, 0)
-
-    BOX_OVER_FLOOR_OFFSET_MULT = 0.1
-    BOX_UNDER_FLOOR_OFFSET_MULT = 0.2
 
     grid_height = len(pixel_grid)
     grid_width = len(pixel_grid[0])
