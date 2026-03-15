@@ -22,7 +22,7 @@ class RenderParameters:
     floor_roughness: float = 0.5
     world_strength: float = 0.1
     key_light_energy: float = 100.0
-    fill_light_energy: float = 2000.0
+    fill_light_energy: float = 4500.0
     rim_light_energy: float = 100.0
     samples: int = 64
     resolution_x: int = 400
@@ -437,8 +437,8 @@ def setup_lighting(params=DEFAULT_RENDER_PARAMETERS):
     ceiling_data.shape = 'RECTANGLE'
 
     # 3. Set the width (size) and height (size_y)
-    ceiling_data.size = 20.0    # Width in meters
-    ceiling_data.size_y = 20.0  # Height in meters
+    ceiling_data.size = 30.0    # Width in meters
+    ceiling_data.size_y = 30.0  # Height in meters
 
     # 4. Set energy and color
     ceiling_data.energy = params.fill_light_energy

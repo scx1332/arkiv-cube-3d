@@ -15,9 +15,9 @@ InputPixel: TypeAlias = tuple[Color, float]
 
 # --- Constants ---
 BOX_SPACING_BASE = 19.8
-BOX_SCALE = 0.95
+BOX_SCALE = 0.92
 BOX_HEIGHT_MULTIPLIER = 2.5
-BOX_OVER_FLOOR_OFFSET_MULT = 0.1
+BOX_OVER_FLOOR_OFFSET_MULT = 0.2
 BOX_UNDER_FLOOR_OFFSET_MULT = 0.2
 
 @dataclass
