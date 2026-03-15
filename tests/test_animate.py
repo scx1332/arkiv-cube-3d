@@ -8,7 +8,7 @@ import animate
 
 
 class AnimateTests(unittest.TestCase):
-    def test_render_frame_uses_expected_command_and_height(self):
+    def test_render_frame_builds_correct_command_and_sets_height_for_frame_one(self):
         env = {"BASE": "value"}
 
         with patch("animate.subprocess.run") as run:
@@ -29,6 +29,12 @@ class AnimateTests(unittest.TestCase):
             check=True,
         )
         self.assertEqual(env["HEIGHT_PERCENTAGE"], "0.07")
+
+    def test_calculate_height_percentage_matches_start_middle_and_end_frames(self):
+        with patch("animate.NUM_FRAMES", 5):
+            self.assertEqual(animate.calculate_height_percentage(0), 0.0)
+            self.assertAlmostEqual(animate.calculate_height_percentage(2), 50.0)
+            self.assertEqual(animate.calculate_height_percentage(4), 100.0)
 
     def test_main_stops_after_render_failure(self):
         calls = []
