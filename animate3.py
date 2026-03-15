@@ -9,7 +9,7 @@ NUM_STEPS = 10
 START_HEIGHT = 0.0
 END_HEIGHT = -100.0
 INPUT_IMAGE = r".\letters\1_A.png"
-OUTPUT_DIR = "frames3"
+OUTPUT_DIR = "frames"
 OUTPUT_PREFIX = "out"
 
 def ease_in_out_sine(x: float) -> float:
