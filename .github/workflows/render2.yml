@@ -1,0 +1,54 @@
+name: Render Cube
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image_path: letters/1_A.png
+            image_name: 1_A
+          - image_path: letters/2_R.png
+            image_name: 2_R
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Blender and system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender ffmpeg
+
+      - name: Install bpy and project dependencies
+        run: |
+          pip install --upgrade pip
+          pip install bpy
+
+      - name: Render preview for ${{ matrix.image_name }}
+        run: |
+          python animate.py
+
+      - name: FFmpeg animation
+        run: |
+          ffmpeg -stream_loop 5 -framerate 30 -i frames/out_%04d.png -c:v libx264 -pix_fmt yuv420p anim.mp4
+
+      - name: Upload animation as artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: anim-${{ matrix.image_name }}
+          path: anim.mp4
