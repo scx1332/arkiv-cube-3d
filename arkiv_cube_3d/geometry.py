@@ -59,7 +59,7 @@ def create_floor_geometry(size=100.0):
 def create_box_geometry(size):
     """Return vertices and faces for a cube centered at the origin with the given edge length."""
     radius = size / 2.0
-    height = 2
+    height = 2.0
     verts = [
         (-radius, -radius, -height),
         (radius, -radius, -height),

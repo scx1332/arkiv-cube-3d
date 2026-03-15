@@ -29,8 +29,8 @@ class RenderParameters:
     box_emission_strength: float = 0.0
     floor_roughness: float = 0.5
     world_strength: float = 0.1
-    key_light_energy: float = 0.0
-    fill_light_energy: float = 5000.0
+    key_light_energy: float = 100.0
+    fill_light_energy: float = 2000.0
     rim_light_energy: float = 100.0
     samples: int = 64
     resolution_x: int = 400
@@ -497,46 +497,48 @@ def setup_lighting(params=DEFAULT_RENDER_PARAMETERS):
     scene_collection = blender.context.scene.collection
 
     # --- Key Light ---
-    key_data = blender.data.lights.new(name="KeyLight", type="AREA")
-    key_data.energy = params.key_light_energy
-    key_data.size = 1.5
-    key_data.color = (1.0, 1.0, 1.0)
+    #key_data = blender.data.lights.new(name="KeyLight", type="AREA")
+    #key_data.energy = params.key_light_energy
+    #key_data.size = 1.5
+    #key_data.color = (1.0, 1.0, 1.0)
 
-    key_light = blender.data.objects.new(name="KeyLight", object_data=key_data)
-    key_light.location = (6, -5, 8)
-    scene_collection.objects.link(key_light)
+    #key_light = blender.data.objects.new(name="KeyLight", object_data=key_data)
+    #key_light.location = (6, -5, 8)
+    #scene_collection.objects.link(key_light)
 
     # --- Fill Light ---
-    fill_data = blender.data.lights.new(name="FillLight", type="AREA")
-    fill_data.energy = params.fill_light_energy
-    fill_data.size = 4.0
-    fill_data.color = (1.0, 1.0, 1.0)
 
-    fill_light = blender.data.objects.new(name="FillLight", object_data=fill_data)
-    fill_light.location = (-15, -15, 10)
-    scene_collection.objects.link(fill_light)
 
-    fill_light = blender.data.objects.new(name="FillLight2", object_data=fill_data)
-    fill_light.location = (15, -15, 10)
-    scene_collection.objects.link(fill_light)
+    ceiling_data = bpy.data.lights.new(name="CeilingLightData", type="AREA")
 
-    fill_light = blender.data.objects.new(name="FillLight3", object_data=fill_data)
-    fill_light.location = (-15, 15, 10)
-    scene_collection.objects.link(fill_light)
+    # 2. Change the shape to a rectangle
+    ceiling_data.shape = 'RECTANGLE'
 
-    fill_light = blender.data.objects.new(name="FillLight4", object_data=fill_data)
-    fill_light.location = (15, 15, 10)
-    scene_collection.objects.link(fill_light)
+    # 3. Set the width (size) and height (size_y)
+    ceiling_data.size = 20.0    # Width in meters
+    ceiling_data.size_y = 20.0  # Height in meters
+
+    # 4. Set energy and color
+    ceiling_data.energy = params.fill_light_energy
+    ceiling_data.color = (1.0, 1.0, 1.0)
+
+    # 5. Create the object and link it to the scene
+    ceiling_obj = bpy.data.objects.new(name="CeilingLight", object_data=ceiling_data)
+    bpy.context.collection.objects.link(ceiling_obj)
+
+    # 6. Position the light at the ceiling
+    # Area lights point straight down (-Z axis) by default
+    ceiling_obj.location = (0.0, 0.0, 10) #
 
     # --- Rim Light ---
-    rim_data = blender.data.lights.new(name="RimLight", type="AREA")
-    rim_data.energy = params.rim_light_energy
-    rim_data.size = 4
-    rim_data.color = (1.0, 1.0, 1.0)
+    #rim_data = blender.data.lights.new(name="RimLight", type="AREA")
+    #rim_data.energy = params.rim_light_energy
+    #rim_data.size = 4
+    #rim_data.color = (1.0, 1.0, 1.0)
 
-    rim_light = blender.data.objects.new(name="RimLight", object_data=rim_data)
-    rim_light.location = (-2, 6, 6)
-    scene_collection.objects.link(rim_light)
+    #rim_light = blender.data.objects.new(name="RimLight", object_data=rim_data)
+    #rim_light.location = (-2, 6, 6)
+    #scene_collection.objects.link(rim_light)
 
 
 def setup_camera():
@@ -569,21 +571,46 @@ def setup_camera():
 def setup_world(params=DEFAULT_RENDER_PARAMETERS):
     """Set up a white background."""
     blender = require_bpy()
-    world = blender.data.worlds.get("World")
-    if world is None:
-        world = blender.data.worlds.new("World")
-    blender.context.scene.world = world
+    world = blender.context.scene.world
+    if not world:
+        world = blender.data.worlds.new("New World")
+        blender.context.scene.world = world
 
     world.use_nodes = True
-    tree = world.node_tree
-    tree.nodes.clear()
+    nodes = world.node_tree.nodes
+    links = world.node_tree.links
 
-    bg_node = tree.nodes.new(type="ShaderNodeBackground")
-    bg_node.inputs["Color"].default_value = (1.0, 1.0, 1.0, 1.0)
-    bg_node.inputs["Strength"].default_value = params.world_strength
+    # Clear existing nodes to start fresh
+    nodes.clear()
 
-    output_node = tree.nodes.new(type="ShaderNodeOutputWorld")
-    tree.links.new(bg_node.outputs["Background"], output_node.inputs["Surface"])
+    # 1. Create the necessary nodes
+    node_light_path = nodes.new(type='ShaderNodeLightPath')
+    node_bg_color = nodes.new(type='ShaderNodeBackground') # For the visual color
+    node_bg_dark = nodes.new(type='ShaderNodeBackground')  # For the lighting (darkness)
+    node_mix = nodes.new(type='ShaderNodeMixShader')
+    node_output = nodes.new(type='ShaderNodeOutputWorld')
+
+    # 2. Set your specific background color here (R, G, B, A)
+    # Example: A nice blue background
+    node_bg_color.inputs[0].default_value = (0.9, 0.9, 0.9, 1.0)
+    node_bg_color.inputs[1].default_value = 1.0 # Visual strength
+
+    # 3. Ensure the lighting background emits absolutely nothing
+    node_bg_dark.inputs[0].default_value = (0.0, 0.0, 0.0, 1.0) # Pure Black
+    node_bg_dark.inputs[1].default_value = 0.0 # 0 Strength
+
+    # 4. Link the nodes
+    # The 'Is Camera Ray' switch: 1 (True) uses the bottom socket, 0 (False) uses the top.
+    links.new(node_light_path.outputs['Is Camera Ray'], node_mix.inputs[0])
+
+    # Top socket (False): Used for diffuse, glossy, and shadow rays -> Pure darkness
+    links.new(node_bg_dark.outputs[0], node_mix.inputs[1])
+
+    # Bottom socket (True): Used only for the camera's vision -> Your custom color
+    links.new(node_bg_color.outputs[0], node_mix.inputs[2])
+
+    # Output to the world
+    links.new(node_mix.outputs[0], node_output.inputs[0])
 
 
 def setup_render_settings(params=DEFAULT_RENDER_PARAMETERS):
@@ -617,7 +644,7 @@ def render(output_path=None):
     blender.context.scene.render.filepath = str(output_file)
     blender.ops.wm.save_as_mainfile(filepath=str(blend_path))
     blender.ops.render.render(write_still=True)
-    postprocess_render_output(output_file)
+    #postprocess_render_output(output_file)
     print(f"Render saved to: {output_file}")
     print(f"Blend scene saved to: {blend_path}")
     return str(output_file)
