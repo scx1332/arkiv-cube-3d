@@ -2,8 +2,6 @@ import os
 from dataclasses import dataclass
 from typing import TypeAlias
 
-from Tools.scripts.fixnotice import process
-
 """Pure geometry helpers for Blender mesh construction."""
 
 
