@@ -557,11 +557,12 @@ def render(output_path=None):
     """Render the scene to an image file."""
     blender = require_bpy()
     if output_path is None:
-        output_path = os.path.join(os.getcwd(), "orange_cube.png")
+        output_path = os.path.join(os.getcwd(), "orange_cube")
 
-    output_file = Path(output_path)
+    output_base = Path(output_path)
+    output_file = output_base.with_suffix(".png")
     output_file.parent.mkdir(parents=True, exist_ok=True)
-    blend_path = output_file.with_suffix(".blend")
+    blend_path = output_base.with_suffix(".blend")
 
     blender.context.scene.render.filepath = str(output_file)
     blender.ops.wm.save_as_mainfile(filepath=str(blend_path))
@@ -591,14 +592,14 @@ def render_scene(params=DEFAULT_RENDER_PARAMETERS, output_path=None, image_path=
     return render(output_path=output_path)
 
 
-def render_fast(image_path=None):
+def render_fast(image_path=None, output_path=None):
     """Main entry point: set up the scene and render boxes on a white floor."""
-    return render_scene(DEFAULT_RENDER_PARAMETERS, image_path=image_path)
+    return render_scene(DEFAULT_RENDER_PARAMETERS, output_path=output_path, image_path=image_path)
 
 
-def render_full(image_path=None):
+def render_full(image_path=None, output_path=None):
     """Main entry point: set up the scene and render boxes on a white floor."""
-    return render_scene(FULL_RES_RENDER_PARAMETERS, image_path=image_path)
+    return render_scene(FULL_RES_RENDER_PARAMETERS, output_path=output_path, image_path=image_path)
 
 
 if __name__ == "__main__":

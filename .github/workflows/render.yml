@@ -41,9 +41,7 @@ jobs:
 
       - name: Render preview for ${{ matrix.image_name }}
         run: |
-          python -m arkiv_cube_3d render --image "${{ matrix.image_path }}"
-          mv orange_cube.png "${{ matrix.image_name }}_preview.png"
-          mv orange_cube.blend "${{ matrix.image_name }}_preview.blend"
+          python -m arkiv_cube_3d render --image "${{ matrix.image_path }}" --output "${{ matrix.image_name }}_preview"
 
       - name: Add ${{ matrix.image_name }} preview to job summary
         if: ${{ hashFiles(format('{0}_preview.png', matrix.image_name)) != '' }}
@@ -73,9 +71,7 @@ jobs:
 
       - name: Render full image for ${{ matrix.image_name }}
         run: |
-          python -m arkiv_cube_3d render --image "${{ matrix.image_path }}" --full
-          mv orange_cube.png "${{ matrix.image_name }}_full.png"
-          mv orange_cube.blend "${{ matrix.image_name }}_full.blend"
+          python -m arkiv_cube_3d render --image "${{ matrix.image_path }}" --full --output "${{ matrix.image_name }}_full"
 
       - name: Upload rendered outputs for ${{ matrix.image_name }}
         uses: actions/upload-artifact@v4

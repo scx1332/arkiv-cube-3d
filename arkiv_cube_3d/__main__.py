@@ -57,6 +57,10 @@ def _build_parser(argv0: str | None = None) -> argparse.ArgumentParser:
         "--image",
         help="Load a fixed 23x23 PNG and use its colors with brightness-derived box heights (render command only).",
     )
+    render_parser.add_argument(
+        "--output",
+        help="Base output path for the generated .png and .blend files; defaults to orange_cube (render command only).",
+    )
     return parser
 
 
@@ -87,12 +91,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         return 3
 
+    render_kwargs = {"image_path": args.image}
+    if args.output:
+        render_kwargs["output_path"] = args.output
+
     if args.full:
         print("Starting full render...")
-        out = render_cube.render_full(image_path=args.image)
+        out = render_cube.render_full(**render_kwargs)
     else:
         print("Starting fast preview render...")
-        out = render_cube.render_fast(image_path=args.image)
+        out = render_cube.render_fast(**render_kwargs)
     print(f"Render completed: {out}")
     return 0
 

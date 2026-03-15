@@ -43,12 +43,14 @@ class ContainerFilesTests(unittest.TestCase):
         self.assertIn("letters/2_R.png", workflow)
         self.assertIn("Render preview for ${{ matrix.image_name }}", workflow)
         self.assertIn("Render full image for ${{ matrix.image_name }}", workflow)
-        self.assertIn('python -m arkiv_cube_3d render --image "${{ matrix.image_path }}"', workflow)
-        self.assertIn('python -m arkiv_cube_3d render --image "${{ matrix.image_path }}" --full', workflow)
-        self.assertIn('mv orange_cube.png "${{ matrix.image_name }}_preview.png"', workflow)
-        self.assertIn('mv orange_cube.blend "${{ matrix.image_name }}_preview.blend"', workflow)
-        self.assertIn('mv orange_cube.png "${{ matrix.image_name }}_full.png"', workflow)
-        self.assertIn('mv orange_cube.blend "${{ matrix.image_name }}_full.blend"', workflow)
+        self.assertIn(
+            'python -m arkiv_cube_3d render --image "${{ matrix.image_path }}" --output "${{ matrix.image_name }}_preview"',
+            workflow,
+        )
+        self.assertIn(
+            'python -m arkiv_cube_3d render --image "${{ matrix.image_path }}" --full --output "${{ matrix.image_name }}_full"',
+            workflow,
+        )
         self.assertIn("GITHUB_STEP_SUMMARY", workflow)
         self.assertIn("data:image/png;base64,", workflow)
         self.assertIn("letters-${{ matrix.image_name }}", workflow)
