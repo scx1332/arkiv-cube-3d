@@ -3,19 +3,11 @@
 import binascii
 from dataclasses import dataclass, replace
 import os
-from pathlib import Path
 import struct
 import zlib
 
-try:
-    from .geometry import create_box_geometry, create_floor_geometry, create_box_configs
-except ImportError:  # pragma: no cover - supports direct script execution
-    from geometry import create_box_geometry, create_floor_geometry
-
-try:
-    import bpy
-except ImportError:  # pragma: no cover - exercised indirectly by runtime checks
-    bpy = None
+from .geometry import create_box_geometry, create_floor_geometry, create_box_configs
+import bpy
 
 
 @dataclass(frozen=True)
@@ -182,11 +174,6 @@ def load_image_heightmap(image_path):
 
     try:
         width, height = (int(image.size[0]), int(image.size[1]))
-        if (width, height) != (HEIGHTMAP_IMAGE_SIZE, HEIGHTMAP_IMAGE_SIZE):
-            raise ValueError(
-                f"Heightmap image must be {HEIGHTMAP_IMAGE_SIZE}x{HEIGHTMAP_IMAGE_SIZE} pixels; "
-                f"got {width}x{height}."
-            )
 
         pixels = list(image.pixels[:])
         pixel_grid = []
@@ -381,66 +368,6 @@ def add_soft_border_rgba(width, height, rows, border_width, border_color):
 
 from pathlib import Path
 
-def apply_feathered_inner_border(width, height, rows, border_width, border_color):
-    """
-    Applies a seamless gradient border inside the image boundaries.
-    Assumes `rows` is a list of bytearrays (or mutable lists) where each
-    element is a sequence of [R, G, B, A, R, G, B, A...].
-    """
-    br, bg, bb, ba = border_color
-
-    for y in range(height):
-        for x in range(width):
-            # Calculate distance to the nearest edge
-            dist_x = min(x, width - 1 - x)
-            dist_y = min(y, height - 1 - y)
-            min_dist = min(dist_x, dist_y)
-
-            # If the pixel is within the border width, apply the blend
-            if min_dist < border_width:
-                # Linear interpolation ratio:
-                # 0.0 at the absolute edge, 1.0 at the inner boundary
-                ratio = min_dist / float(border_width)
-                inv_ratio = 1.0 - ratio
-
-                idx = x * 4
-
-                # Extract original pixel colors
-                r = rows[y][idx]
-                g = rows[y][idx + 1]
-                b = rows[y][idx + 2]
-                a = rows[y][idx + 3]
-
-                # Blend original color with the border color
-                rows[y][idx]     = int((r * ratio) + (br * inv_ratio))
-                rows[y][idx + 1] = int((g * ratio) + (bg * inv_ratio))
-                rows[y][idx + 2] = int((b * ratio) + (bb * inv_ratio))
-                rows[y][idx + 3] = int((a * ratio) + (ba * inv_ratio))
-
-    # Width and height remain unchanged
-    return width, height, rows
-
-def postprocess_render_output(output_path, border_width=None, border_color=SOFT_BORDER_COLOR):
-    """Add a seamless soft inner border to the rendered PNG output."""
-    print("Running postprocess step")
-    output_file = Path(output_path)
-    width, height, rows = _read_png_rgba(output_file)
-
-    if border_width is None:
-        border_width = max(1, round(min(width, height) * SOFT_BORDER_RATIO))
-
-    # Apply the inner fade instead of adding new canvas space
-    processed_width, processed_height, processed_rows = apply_feathered_inner_border(
-        width,
-        height,
-        rows,
-        border_width=border_width,
-        border_color=_rgba_float_to_bytes(border_color),
-    )
-
-    _write_png_rgba(output_file, processed_width, processed_height, processed_rows)
-    return str(output_file)
-
 
 def create_boxes(params=DEFAULT_RENDER_PARAMETERS, pixel_grid=None):
     """Create boxes from the configured layout and colors."""
@@ -448,21 +375,16 @@ def create_boxes(params=DEFAULT_RENDER_PARAMETERS, pixel_grid=None):
     boxes = []
     active_box_configs = create_box_configs(pixel_grid)
     for config in active_box_configs:
-        if len(config) == 5:
-            name, loc, size, color, height = config
-        else:
-            name, loc, size, color = config
-            height = None
 
         # 1. Create a UNIQUE material for this specific box
-        mat = blender.data.materials.new(name=f"{name}_Material")
+        mat = blender.data.materials.new(name=f"{config.name}_Material")
         mat.use_nodes = True
         bsdf = mat.node_tree.nodes.get("Principled BSDF")
 
         if bsdf:
 
             # Apply the unique color
-            bsdf.inputs["Base Color"].default_value = color
+            bsdf.inputs["Base Color"].default_value = config.color
 
             # Apply the shared parameters to this specific material
             set_material_input(bsdf, ["Roughness"], params.box_roughness)
@@ -471,15 +393,15 @@ def create_boxes(params=DEFAULT_RENDER_PARAMETERS, pixel_grid=None):
             set_material_input(bsdf, ["Emission Strength"], params.box_emission_strength)
 
         # 3. Create the geometry directly in Blender's data blocks
-        verts, faces = create_box_geometry(size)
+        vertices, faces = create_box_geometry(config.dimensions)
 
         # Create Mesh and Object data
-        mesh = blender.data.meshes.new(name=f"{name}_Mesh")
-        mesh.from_pydata(verts, [], faces)
+        mesh = blender.data.meshes.new(name=f"{config.name}_Mesh")
+        mesh.from_pydata(vertices, [], faces)
         mesh.update() # Write the new geometry data to the mesh
 
-        box = blender.data.objects.new(name=name, object_data=mesh)
-        box.location = loc
+        box = blender.data.objects.new(name=config.name, object_data=mesh)
+        box.location = config.position
 
         # Link to scene so it is visible/renderable
         blender.context.scene.collection.objects.link(box)
@@ -555,7 +477,7 @@ def setup_camera():
     # --- Camera ---
     cam_data = blender.data.cameras.new("Camera")
     camera = blender.data.objects.new("Camera", object_data=cam_data)
-    camera.location = (0, -0.01, 26.2)
+    camera.location = (0, -0.01, 28.2)
     scene_collection.objects.link(camera)
 
     # --- Constraints ---
@@ -644,7 +566,6 @@ def render(output_path=None):
     blender.context.scene.render.filepath = str(output_file)
     blender.ops.wm.save_as_mainfile(filepath=str(blend_path))
     blender.ops.render.render(write_still=True)
-    #postprocess_render_output(output_file)
     print(f"Render saved to: {output_file}")
     print(f"Blend scene saved to: {blend_path}")
     return str(output_file)
@@ -660,7 +581,9 @@ def render_scene(params=DEFAULT_RENDER_PARAMETERS, output_path=None, image_path=
     else:
         pixel_grid = load_image_heightmap("example.png")
 
+
     create_boxes(params, pixel_grid=pixel_grid)
+    create_floor(params)
     setup_lighting(params)
     setup_camera()
     setup_world(params)

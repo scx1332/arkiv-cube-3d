@@ -1,49 +1,75 @@
+from dataclasses import dataclass
+from typing import TypeAlias
 """Pure geometry helpers for Blender mesh construction."""
 
 
+# --- Type Definitions ---
+Color: TypeAlias = tuple[float, float, float, float]
+Position: TypeAlias = tuple[float, float, float]
+Dimensions: TypeAlias = tuple[float, float, float]
+InputPixel: TypeAlias = tuple[Color, float]
+
+# --- Constants ---
 BOX_GRID_COUNT = 31
 BOX_GRID_MARGIN = 4
-BOX_SPACING = 0.55
+BOX_SPACING_BASE = 0.55 * 31
 BOX_SCALE = 0.95
 BOX_HEIGHT_MULTIPLIER = 1.3
-DEFAULT_BOX_COLOR = (1.0, 1.0, 1.0, 1.0)
+DEFAULT_BOX_COLOR: Color = (1.0, 1.0, 1.0, 1.0)
+
+# Derived constant to replace the magic number '23'
+ACTIVE_GRID_SIZE = BOX_GRID_COUNT - (2 * BOX_GRID_MARGIN)
+
+@dataclass
+class BoxConfig:
+    """Configuration for a generated 3D box."""
+    name: str
+    position: Position
+    dimensions: Dimensions
+    color: Color
 
 
-def create_box_configs(pixel_grid):
-    grid_origin_x = -BOX_GRID_COUNT / 2 * BOX_SPACING + 0.5 * BOX_SPACING
-    grid_origin_y = -BOX_GRID_COUNT / 2 * BOX_SPACING + 0.5 * BOX_SPACING
-    box_configs = []
+def create_box_configs(pixel_grid: list[list[InputPixel]]) -> list[BoxConfig]:
+    """Generates a grid of box configurations based on pixel height and color data."""
+    # Calculate the starting coordinate to center the grid at (0, 0)
+
+    grid_height = len(pixel_grid)
+    grid_width = len(pixel_grid[0])
+
+    box_spacing = BOX_SPACING_BASE / max(grid_height, grid_width)
+
+    grid_origin_x = -(grid_width - 1) / 2.0 * box_spacing
+    grid_origin_y = -(grid_height - 1) / 2.0 * box_spacing
+
+    box_configs: list[BoxConfig] = []
+    box_size = box_spacing * BOX_SCALE
     box_number = 0
 
-    for x_index in range(BOX_GRID_COUNT):
-        for y_index in range(BOX_GRID_COUNT):
-            pixel_x = x_index - BOX_GRID_MARGIN
-            pixel_y = y_index - BOX_GRID_MARGIN
-
-            if 0 <= pixel_x < 23 and pixel_y >= 0 and pixel_y < 23:
-                color, height_intensity = pixel_grid[pixel_y][pixel_x]
-            else:
-                color, height_intensity = DEFAULT_BOX_COLOR, 0.0
-
-            box_height = BOX_HEIGHT_MULTIPLIER * height_intensity
+    for pixel_x in range(len(pixel_grid[0])):
+        for pixel_y in range(len(pixel_grid)):
             box_number += 1
+
+            color, height_intensity = pixel_grid[pixel_y][pixel_x]
+
+            # Calculate 3D spatial properties
+            box_height = BOX_HEIGHT_MULTIPLIER * height_intensity
+            pos_x = pixel_x * box_spacing + grid_origin_x
+            pos_y = pixel_y * box_spacing + grid_origin_y
+            pos_z = box_height * box_spacing - box_size + 0.2 * box_size
+
+            # Create and append the typed configuration object
             box_configs.append(
-                (
-                    f"Box {box_number}",
-                    (
-                        x_index * BOX_SPACING + grid_origin_x,
-                        y_index * BOX_SPACING + grid_origin_y,
-                        box_height * BOX_SPACING,
-                    ),
-                    BOX_SPACING * BOX_SCALE,
-                    color,
+                BoxConfig(
+                    name=f"Box {box_number}",
+                    position=(pos_x, pos_y, pos_z),
+                    dimensions=(box_size, box_size, box_size * 2),
+                    color=color,
                 )
             )
 
     return box_configs
 
-
-def create_floor_geometry(size=100.0):
+def create_floor_geometry(size=20.0):
     """Return vertices and faces for a square floor plane."""
     half = size / 2.0
     verts = [
@@ -56,26 +82,52 @@ def create_floor_geometry(size=100.0):
     return verts, faces
 
 
-def create_box_geometry(size):
-    """Return vertices and faces for a cube centered at the origin with the given edge length."""
-    radius = size / 2.0
-    height = 2.0
-    verts = [
-        (-radius, -radius, -height),
-        (radius, -radius, -height),
-        (radius, radius, -height),
-        (-radius, radius, -height),
-        (-radius, -radius, height),
-        (radius, -radius, height),
-        (radius, radius, height),
-        (-radius, radius, height),
+from typing import List, Tuple
+
+def create_box_geometry(
+        dimensions: Tuple[float, float, float]
+) -> Tuple[List[Tuple[float, float, float]], List[Tuple[int, int, int, int]]]:
+    """
+    Creates a rectangular prism based on a (width, height, depth) tuple.
+
+    Args:
+        dimensions: A tuple (x_size, y_size, z_size)
+
+    Returns:
+        verts: List of (x, y, z) coordinates
+        faces: List of vertex index quadruplets
+    """
+    # Unpack the dimensions tuple
+    w, h, d = dimensions
+
+    # Calculate half-extents to center at (0, 0, 0)
+    x, y, z = w / 2.0, h / 2.0, d / 2.0
+
+    # Vertices: 8 corners of the box
+    verts: List[Tuple[float, float, float]] = [
+        (-x, -y, -z), # 0
+        ( x, -y, -z), # 1
+        ( x,  y, -z), # 2
+        (-x,  y, -z), # 3
+        (-x, -y,  z), # 4
+        ( x, -y,  z), # 5
+        ( x,  y,  z), # 6
+        (-x,  y,  z), # 7
     ]
-    faces = [
-        (0, 1, 2, 3),
-        (7, 6, 5, 4),
-        (0, 1, 5, 4),
-        (1, 2, 6, 5),
-        (2, 3, 7, 6),
-        (3, 0, 4, 7),
+
+    # Faces: Defined by vertex indices
+    # Winding order: Counter-clockwise when viewed from outside
+    faces: List[Tuple[int, int, int, int]] = [
+        (0, 3, 2, 1), # Bottom (-Z)
+        (4, 5, 6, 7), # Top (+Z)
+        (0, 1, 5, 4), # Front (-Y)
+        (1, 2, 6, 5), # Right (+X)
+        (2, 3, 7, 6), # Back (+Y)
+        (3, 0, 4, 7), # Left (-X)
     ]
+
     return verts, faces
+
+# Example usage:
+# size = (10.0, 5.0, 2.0)
+# vertices, faces = create_box_geometry(size)
