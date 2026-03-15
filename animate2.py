@@ -5,13 +5,13 @@ import math
 # --- Configuration ---
 # Number of frames for ONE WAY (0 to 100).
 # The total animation will be (NUM_STEPS * 2) - 2 frames.
-NUM_STEPS = 10
-START_HEIGHT = 100.0
-END_HEIGHT = 0.0
+NUM_STEPS = 20
+START_HEIGHT = -100.0
+END_HEIGHT = 100.0
 INPUT_IMAGE = r".\letters\1_A.png"
-OUTPUT_DIR = "frames"
+OUTPUT_DIR = "frames2"
 OUTPUT_PREFIX = "out"
-START_FRAME = 10
+START_FRAME = 20
 
 def ease_in_out_sine(x: float) -> float:
     """
@@ -40,8 +40,8 @@ def main():
         current_height = START_HEIGHT + (END_HEIGHT - START_HEIGHT) * eased_t
 
         # Update environment
-        env["HEIGHT_PERCENTAGE"] = f"-100.0"
-        env["MOVE_X_PERCENTAGE"] = f"{current_height:.2f}"
+        env["HEIGHT_PERCENTAGE"] = f"{current_height:.2f}"
+        env["MOVE_X_PERCENTAGE"] = f"0"
         frame_no = START_FRAME + i
 
         output_path = os.path.join(OUTPUT_DIR, f"{OUTPUT_PREFIX}_{frame_no:04d}.png")

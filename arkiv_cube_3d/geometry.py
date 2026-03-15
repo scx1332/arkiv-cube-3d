@@ -84,7 +84,8 @@ def create_box_configs(pixel_grid: list[list[InputPixel]]) -> list[BoxConfig]:
             pos_z = box_height * box_spacing + BOX_OVER_FLOOR_OFFSET_MULT * box_spacing
 
 
-
+            if os.getenv("OVERRIDE_WHITE"):
+                color = (1.0, 1.0, 1.0, 1.0)
 
             # Create and append the typed configuration object
             box_configs.append(
@@ -96,15 +97,14 @@ def create_box_configs(pixel_grid: list[list[InputPixel]]) -> list[BoxConfig]:
                 )
             )
             box_number += 1
-            if height_intensity == 0:
-                box_configs.append(
-                    BoxConfig(
-                        name=f"Box {box_number}",
-                        position=(pos_x + move_x_b * box_spacing, pos_y, pos_z - box_spacing),
-                        dimensions=(box_spacing, box_spacing, box_spacing),
-                        color=color,
-                    )
+            box_configs.append(
+                BoxConfig(
+                    name=f"Box {box_number}",
+                    position=(pos_x + move_x_b * box_spacing, pos_y, pos_z - box_spacing),
+                    dimensions=(box_size, box_size, box_spacing),
+                    color=(1.0, 1.0, 1.0, 1.0),
                 )
+            )
 
     return box_configs
 
