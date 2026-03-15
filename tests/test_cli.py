@@ -42,6 +42,17 @@ class CliTests(unittest.TestCase):
         render_fast.assert_called_once_with(image_path="example.png")
         self.assertIn("Render completed: preview.png", stdout.getvalue())
 
+    @patch("arkiv_cube_3d.__main__.render_cube.render_fast", return_value="custom.png")
+    @patch("arkiv_cube_3d.__main__.render_cube.is_bpy_available", return_value=True)
+    def test_main_passes_output_to_fast_render(self, is_bpy_available, render_fast):
+        stdout = io.StringIO()
+        with redirect_stdout(stdout):
+            self.assertEqual(cli.main(["render", "--image", "example.png", "--output", "custom"]), 0)
+
+        is_bpy_available.assert_called_once_with()
+        render_fast.assert_called_once_with(image_path="example.png", output_path="custom")
+        self.assertIn("Render completed: custom.png", stdout.getvalue())
+
     @patch("arkiv_cube_3d.__main__.render_cube.render_full", return_value="full.png")
     @patch("arkiv_cube_3d.__main__.render_cube.is_bpy_available", return_value=True)
     def test_main_passes_image_to_full_render(self, is_bpy_available, render_full):
@@ -52,6 +63,17 @@ class CliTests(unittest.TestCase):
         is_bpy_available.assert_called_once_with()
         render_full.assert_called_once_with(image_path="example.png")
         self.assertIn("Render completed: full.png", stdout.getvalue())
+
+    @patch("arkiv_cube_3d.__main__.render_cube.render_full", return_value="custom.png")
+    @patch("arkiv_cube_3d.__main__.render_cube.is_bpy_available", return_value=True)
+    def test_main_passes_output_to_full_render(self, is_bpy_available, render_full):
+        stdout = io.StringIO()
+        with redirect_stdout(stdout):
+            self.assertEqual(cli.main(["render", "--full", "--image", "example.png", "--output", "custom"]), 0)
+
+        is_bpy_available.assert_called_once_with()
+        render_full.assert_called_once_with(image_path="example.png", output_path="custom")
+        self.assertIn("Render completed: custom.png", stdout.getvalue())
 
 
 if __name__ == "__main__":

@@ -35,6 +35,7 @@ python -m arkiv_cube_3d
 python -m arkiv_cube_3d web
 python -m arkiv_cube_3d render  # requires bpy / Blender
 python -m arkiv_cube_3d render --image example.png  # fixed 23x23 PNG with source colors and brightness-based heights
+python -m arkiv_cube_3d render --image example.png --output my_render  # writes my_render.png and my_render.blend
 ```
 
 If you're running from a source checkout and want a simple script instead of `-m`, use:
@@ -96,4 +97,4 @@ A workflow is included that automatically renders the cube on push/PR to `main`.
 
 ## Output
 
-Each matrix job renders one image from `letters/` and renames the generated files to match the source image, for example `1_A_preview.png`, `1_A_preview.blend`, `1_A_full.png`, and `1_A_full.blend`. The preview PNG is shown inline in the GitHub Actions job summary so you can inspect the latest render without downloading the artifact zip, while the matching `letters-<image>` artifact keeps the PNG and `.blend` files available for download. Rendered PNGs are postprocessed with a soft light-gray border so they blend more smoothly into a website background.
+The render CLI writes `orange_cube.png` and `orange_cube.blend` by default, or uses the `--output` base name to produce matching `.png` and `.blend` files such as `1_A_preview.png`, `1_A_preview.blend`, `1_A_full.png`, and `1_A_full.blend`. The preview PNG is shown inline in the GitHub Actions job summary so you can inspect the latest render without downloading the artifact zip, while the matching `letters-<image>` artifact keeps the PNG and `.blend` files available for download. Rendered PNGs are postprocessed with a soft light-gray border so they blend more smoothly into a website background.
