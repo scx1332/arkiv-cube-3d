@@ -12,14 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - image_path: letters/1_A.png
-            image_name: 1_A
-          - image_path: letters/2_R.png
-            image_name: 2_R
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
