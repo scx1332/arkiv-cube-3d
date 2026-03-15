@@ -560,12 +560,14 @@ def render(output_path=None):
         output_path = os.path.join(os.getcwd(), "orange_cube")
 
     output_base = Path(output_path)
-    output_file = output_base.with_suffix(".png")
+    output_file = output_base
     output_file.parent.mkdir(parents=True, exist_ok=True)
     blend_path = output_base.with_suffix(".blend")
 
-    blender.context.scene.render.filepath = str(output_file)
-    blender.ops.wm.save_as_mainfile(filepath=str(blend_path))
+    full_output_path = os.path.abspath(output_file)
+    blend_output_path = os.path.abspath(blend_path)
+    blender.context.scene.render.filepath = str(full_output_path)
+    blender.ops.wm.save_as_mainfile(filepath=str(blend_output_path))
     blender.ops.render.render(write_still=True)
     print(f"Render saved to: {output_file}")
     print(f"Blend scene saved to: {blend_path}")
