@@ -44,7 +44,8 @@ def loop1():
         command = [
             "python", "-m", "arkiv_cube_3d", "render",
             "--image", INPUT_IMAGE,
-            "--output", output_path
+            "--output", output_path,
+            "--full"
         ]
 
         try:
@@ -96,7 +97,8 @@ def loop2():
         command = [
             "python", "-m", "arkiv_cube_3d", "render",
             "--image", INPUT_IMAGE,
-            "--output", output_path
+            "--output", output_path,
+            "--full"
         ]
 
         try:
@@ -148,7 +150,8 @@ def loop3():
         command = [
             "python", "-m", "arkiv_cube_3d", "render",
             "--image", INPUT_IMAGE,
-            "--output", output_path
+            "--output", output_path,
+            "--full"
         ]
 
         print(f"Frame {i:04d}/{total_frames-1} | Height: {current_height:.2f} | Dir: {'UP' if i < NUM_STEPS else 'DOWN'}")
