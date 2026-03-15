@@ -12,7 +12,7 @@ InputPixel: TypeAlias = tuple[Color, float]
 # --- Constants ---
 BOX_GRID_COUNT = 31
 BOX_GRID_MARGIN = 4
-BOX_SPACING_BASE = 0.55 * 31
+BOX_SPACING_BASE = 19.8
 BOX_SCALE = 0.95
 BOX_HEIGHT_MULTIPLIER = 1.3
 DEFAULT_BOX_COLOR: Color = (1.0, 1.0, 1.0, 1.0)
@@ -33,16 +33,19 @@ def create_box_configs(pixel_grid: list[list[InputPixel]]) -> list[BoxConfig]:
     """Generates a grid of box configurations based on pixel height and color data."""
     # Calculate the starting coordinate to center the grid at (0, 0)
 
+    BOX_OVER_FLOOR_OFFSET_MULT = 0.1
+    BOX_UNDER_FLOOR_OFFSET_MULT = 0.2
+
     grid_height = len(pixel_grid)
     grid_width = len(pixel_grid[0])
 
     box_spacing = BOX_SPACING_BASE / max(grid_height, grid_width)
+    box_size = box_spacing * BOX_SCALE
 
     grid_origin_x = -(grid_width - 1) / 2.0 * box_spacing
     grid_origin_y = -(grid_height - 1) / 2.0 * box_spacing
 
     box_configs: list[BoxConfig] = []
-    box_size = box_spacing * BOX_SCALE
     box_number = 0
 
     for pixel_x in range(len(pixel_grid[0])):
@@ -55,15 +58,17 @@ def create_box_configs(pixel_grid: list[list[InputPixel]]) -> list[BoxConfig]:
             box_height = BOX_HEIGHT_MULTIPLIER * height_intensity
             pos_x = pixel_x * box_spacing + grid_origin_x
             pos_y = pixel_y * box_spacing + grid_origin_y
-            pos_z = box_height * box_spacing - box_size + 0.2 * box_size
+            box_size_z = BOX_UNDER_FLOOR_OFFSET_MULT * box_spacing + box_height * box_spacing
+            pos_z = box_height * box_spacing - box_size_z / 2 + BOX_OVER_FLOOR_OFFSET_MULT * box_spacing
 
             # Create and append the typed configuration object
             box_configs.append(
                 BoxConfig(
                     name=f"Box {box_number}",
                     position=(pos_x, pos_y, pos_z),
-                    dimensions=(box_size, box_size, box_size * 2),
+                    dimensions=(box_size, box_size, box_size_z),
                     color=color,
+
                 )
             )
 
