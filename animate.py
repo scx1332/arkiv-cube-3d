@@ -5,7 +5,7 @@ import math
 # --- Configuration ---
 # Number of frames for ONE WAY (0 to 100).
 # The total animation will be (NUM_STEPS * 2) - 2 frames.
-NUM_STEPS = 60
+NUM_STEPS = 10
 START_HEIGHT = 0.0
 END_HEIGHT = 100.0
 INPUT_IMAGE = r".\letters\1_A.png"
@@ -25,23 +25,15 @@ def main():
 
     # Calculate total frames for a full round trip (0 -> 100 -> 0)
     # We subtract 2 to prevent duplicate frames at the peak (100) and the loop point (0)
-    total_frames = (NUM_STEPS * 2) - 2
+    total_frames = NUM_STEPS
 
     print(f"Starting render of {total_frames} frames for a full loop...")
 
     for i in range(total_frames):
         # 1. Calculate linear progress (0.0 to 1.0 for the whole animation)
         # However, we want the 'height' to peak at the middle.
-        if i < NUM_STEPS:
-            # Going UP: 0.0 at i=0, 1.0 at i=NUM_STEPS-1
-            t = i / (NUM_STEPS - 1)
-        else:
-            # Going DOWN: Starts after the peak
-            # Example: if NUM_STEPS is 60, i=60 is the first step back down.
-            t = 1.0 - ((i - (NUM_STEPS - 1)) / (NUM_STEPS - 1))
-
         # 2. Apply easing to the oscillating t
-        eased_t = ease_in_out_sine(t)
+        eased_t = i / (total_frames - 1)
 
         # 3. Calculate current height percentage
         current_height = START_HEIGHT + (END_HEIGHT - START_HEIGHT) * eased_t

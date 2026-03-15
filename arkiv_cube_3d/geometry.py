@@ -52,7 +52,7 @@ def create_box_configs(pixel_grid: list[list[InputPixel]]) -> list[BoxConfig]:
     height_percentage = float(os.getenv("HEIGHT_PERCENTAGE", "100.0")) / 100.0
     height_percentage_limit = 0.15
 
-    move_x_b = float(os.getenv("MOVE_X_PERCENTAGE", "50.0")) / 100.0
+    move_x_b = float(os.getenv("MOVE_X_PERCENTAGE", "0.0")) / 100.0
 
     for pixel_x in range(len(pixel_grid[0])):
         for pixel_y in range(len(pixel_grid)):
@@ -90,7 +90,7 @@ def create_box_configs(pixel_grid: list[list[InputPixel]]) -> list[BoxConfig]:
             box_configs.append(
                 BoxConfig(
                     name=f"Box {box_number}",
-                    position=(pos_x + move_x, pos_y, pos_z),
+                    position=(pos_x + move_x * box_spacing, pos_y, pos_z),
                     dimensions=(box_size, box_size, box_spacing),
                     color=color,
                 )
@@ -100,8 +100,8 @@ def create_box_configs(pixel_grid: list[list[InputPixel]]) -> list[BoxConfig]:
                 box_configs.append(
                     BoxConfig(
                         name=f"Box {box_number}",
-                        position=(pos_x + move_x_b, pos_y, pos_z - box_spacing),
-                        dimensions=(box_size, box_size, box_spacing),
+                        position=(pos_x + move_x_b * box_spacing, pos_y, pos_z - box_spacing),
+                        dimensions=(box_spacing, box_spacing, box_spacing),
                         color=color,
                     )
                 )
