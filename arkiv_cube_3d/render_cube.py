@@ -586,7 +586,7 @@ def render_scene(params=DEFAULT_RENDER_PARAMETERS, output_path=None, image_path=
 
 
     create_boxes(params, pixel_grid=pixel_grid)
-    create_floor(params)
+    #create_floor(params)
     setup_lighting(params)
     setup_camera()
     setup_world(params)

@@ -2,8 +2,6 @@ import os
 from dataclasses import dataclass
 from typing import TypeAlias
 
-from Tools.scripts.fixnotice import process
-
 """Pure geometry helpers for Blender mesh construction."""
 
 
@@ -16,9 +14,9 @@ InputPixel: TypeAlias = tuple[Color, float]
 # --- Constants ---
 BOX_SPACING_BASE = 19.8
 BOX_SCALE = 0.92
-BOX_HEIGHT_MULTIPLIER = 2.5
+BOX_HEIGHT_MULTIPLIER = 1.0
 BOX_OVER_FLOOR_OFFSET_MULT = 0.2
-BOX_UNDER_FLOOR_OFFSET_MULT = 0.2
+BOX_UNDER_FLOOR_OFFSET_MULT = 2.0
 
 @dataclass
 class BoxConfig:
@@ -52,12 +50,18 @@ def create_box_configs(pixel_grid: list[list[InputPixel]]) -> list[BoxConfig]:
     height_percentage = float(os.getenv("HEIGHT_PERCENTAGE", "100.0")) / 100.0
     height_percentage_limit = 0.15
 
+    move_x_b = float(os.getenv("MOVE_X_PERCENTAGE", "0.0")) / 100.0
+
     for pixel_x in range(len(pixel_grid[0])):
         for pixel_y in range(len(pixel_grid)):
             box_number += 1
 
 
             color, height_intensity = pixel_grid[pixel_y][pixel_x]
+            move_x = 0
+            if height_intensity > 0:
+                height_intensity = 1.0
+                move_x = move_x_b
 
             if height_percentage > height_percentage_limit:
                 color_intensity = 1.0
@@ -65,30 +69,38 @@ def create_box_configs(pixel_grid: list[list[InputPixel]]) -> list[BoxConfig]:
                 color_intensity = (height_percentage / height_percentage_limit) * 1.0
 
             # blend color with white based on intensity to avoid pure black
-            blended_color = tuple(
-                color_intensity * c + (1 - color_intensity) * 1.0 for c in color[:3]
-            ) + (color[3],)  # Preserve original alpha
-            color = blended_color
+            # blended_color = tuple(
+            #     color_intensity * c + (1 - color_intensity) * 1.0 for c in color[:3]
+            # ) + (color[3],)  # Preserve original alpha
+            # color = blended_color
 
             # Calculate 3D spatial properties
-            box_height = BOX_HEIGHT_MULTIPLIER * height_intensity * height_percentage
+            box_height = height_intensity * height_percentage
+            pos_base_x = pixel_x * box_spacing + grid_origin_x
             pos_x = pixel_x * box_spacing + grid_origin_x
             pos_y = pixel_y * box_spacing + grid_origin_y
-            box_size_z = BOX_UNDER_FLOOR_OFFSET_MULT * box_spacing + box_height * box_spacing
-            pos_z = box_height * box_spacing - box_size_z / 2 + BOX_OVER_FLOOR_OFFSET_MULT * box_spacing
+            pos_z = box_height * box_spacing + BOX_OVER_FLOOR_OFFSET_MULT * box_spacing
 
 
-
-
+            if os.getenv("OVERRIDE_WHITE"):
+                color = (1.0, 1.0, 1.0, 1.0)
 
             # Create and append the typed configuration object
             box_configs.append(
                 BoxConfig(
                     name=f"Box {box_number}",
-                    position=(pos_x, pos_y, pos_z),
-                    dimensions=(box_size, box_size, box_size_z),
+                    position=(pos_x + move_x * box_spacing, pos_y, pos_z),
+                    dimensions=(box_size, box_size, box_spacing),
                     color=color,
-
+                )
+            )
+            box_number += 1
+            box_configs.append(
+                BoxConfig(
+                    name=f"Box {box_number}",
+                    position=(pos_x + move_x_b * box_spacing, pos_y, pos_z - box_spacing),
+                    dimensions=(box_size, box_size, box_spacing),
+                    color=(1.0, 1.0, 1.0, 1.0),
                 )
             )
 

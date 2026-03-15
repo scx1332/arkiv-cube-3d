@@ -2,64 +2,166 @@ import subprocess
 import os
 import math
 
-# --- Configuration ---
-NUM_FRAMES = 60           # Total number of frames for the animation
-START_HEIGHT = 0.0        # Starting value for HEIGHT_PERCENTAGE
-END_HEIGHT = 100.0        # Ending value for HEIGHT_PERCENTAGE
-INPUT_IMAGE = r".\letters\1_A.png"
-OUTPUT_DIR = "frames"     # Subfolder to store the rendered frames
-OUTPUT_PREFIX = "out"
 
-def ease_in_out_sine(x: float) -> float:
-    """
-    Easing function: smooth start and smooth end.
-    x should be between 0.0 and 1.0
-    """
-    return -(math.cos(math.pi * x) - 1.0) / 2.0
 
-def main():
-    # Copy the current environment variables
+def loop1():
+    # --- Configuration ---
+    # Number of frames for ONE WAY (0 to 100).
+    # The total animation will be (NUM_STEPS * 2) - 2 frames.
+    NUM_STEPS = 10
+    START_HEIGHT = 100.0
+    END_HEIGHT = 0.0
+    INPUT_IMAGE = r".\letters\1_A.png"
+    OUTPUT_DIR = "frames"
+    OUTPUT_PREFIX = "out"
+    START_FRAME = 10
+
     env = os.environ.copy()
-
-    # Create the output subfolder if it doesn't exist
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-    print(f"Output folder '{OUTPUT_DIR}' is ready.")
-    print(f"Starting render of {NUM_FRAMES} frames...")
 
-    for i in range(NUM_FRAMES):
-        # 1. Calculate progress (0.0 to 1.0)
-        t = i / (NUM_FRAMES - 1) if NUM_FRAMES > 1 else 1.0
+    # Calculate total frames for a full round trip (0 -> 100 -> 0)
+    # We subtract 2 to prevent duplicate frames at the peak (100) and the loop point (0)
+    total_frames = NUM_STEPS
 
-        # 2. Apply easing
-        eased_t = ease_in_out_sine(t)
+    print(f"Starting render of {total_frames} frames for a full loop...")
+
+    for i in range(total_frames):
+        # 1. Calculate linear progress (0.0 to 1.0 for the whole animation)
+        # However, we want the 'height' to peak at the middle.
+        # 2. Apply easing to the oscillating t
+        eased_t = i / (total_frames - 1)
 
         # 3. Calculate current height percentage
         current_height = START_HEIGHT + (END_HEIGHT - START_HEIGHT) * eased_t
 
-        # Update the environment variable
-        env["HEIGHT_PERCENTAGE"] = f"{current_height:.2f}"
+        # Update environment
+        env["HEIGHT_PERCENTAGE"] = f"-100.0"
+        env["MOVE_X_PERCENTAGE"] = f"{current_height:.2f}"
+        frame_no = START_FRAME + i
 
-        # 4. Format output filename and join with the subfolder path
-        output_filename = f"{OUTPUT_PREFIX}_{i:04d}.png"
-        output_path = os.path.join(OUTPUT_DIR, output_filename)
+        output_path = os.path.join(OUTPUT_DIR, f"{OUTPUT_PREFIX}_{frame_no:04d}.png")
 
-        # Build the command
         command = [
             "python", "-m", "arkiv_cube_3d", "render",
             "--image", INPUT_IMAGE,
             "--output", output_path
         ]
 
-        print(f"Rendering frame {i:04d} / {NUM_FRAMES-1} | HEIGHT_PERCENTAGE: {current_height:.2f}")
-
-        # Run the command with the modified environment
         try:
             subprocess.run(command, env=env, check=True)
         except subprocess.CalledProcessError as e:
-            print(f"Error rendering frame {i}: {e}")
+            print(f"Error at frame {i}: {e}")
             break
 
-    print("Rendering complete!")
+    print("Looping render complete!")
+
+def loop2():
+
+    # --- Configuration ---
+    # Number of frames for ONE WAY (0 to 100).
+    # The total animation will be (NUM_STEPS * 2) - 2 frames.
+    NUM_STEPS = 20
+    START_HEIGHT = -100.0
+    END_HEIGHT = 100.0
+    INPUT_IMAGE = r".\letters\1_A.png"
+    OUTPUT_DIR = "frames"
+    OUTPUT_PREFIX = "out"
+    START_FRAME = 20
+
+    env = os.environ.copy()
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    # Calculate total frames for a full round trip (0 -> 100 -> 0)
+    # We subtract 2 to prevent duplicate frames at the peak (100) and the loop point (0)
+    total_frames = NUM_STEPS
+
+    print(f"Starting render of {total_frames} frames for a full loop...")
+
+    for i in range(total_frames):
+        # 1. Calculate linear progress (0.0 to 1.0 for the whole animation)
+        # However, we want the 'height' to peak at the middle.
+        # 2. Apply easing to the oscillating t
+        eased_t = i / (total_frames - 1)
+
+        # 3. Calculate current height percentage
+        current_height = START_HEIGHT + (END_HEIGHT - START_HEIGHT) * eased_t
+
+        # Update environment
+        env["HEIGHT_PERCENTAGE"] = f"{current_height:.2f}"
+        env["MOVE_X_PERCENTAGE"] = f"0"
+        frame_no = START_FRAME + i
+
+        output_path = os.path.join(OUTPUT_DIR, f"{OUTPUT_PREFIX}_{frame_no:04d}.png")
+
+        command = [
+            "python", "-m", "arkiv_cube_3d", "render",
+            "--image", INPUT_IMAGE,
+            "--output", output_path
+        ]
+
+        try:
+            subprocess.run(command, env=env, check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Error at frame {i}: {e}")
+            break
+
+    print("Looping render complete!")
+
+def loop3():
+
+    # --- Configuration ---
+    # Number of frames for ONE WAY (0 to 100).
+    # The total animation will be (NUM_STEPS * 2) - 2 frames.
+    NUM_STEPS = 10
+    START_HEIGHT = 0.0
+    END_HEIGHT = -100.0
+    INPUT_IMAGE = r".\letters\1_A.png"
+    OUTPUT_DIR = "frames"
+    OUTPUT_PREFIX = "out"
+
+
+    env = os.environ.copy()
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    # Calculate total frames for a full round trip (0 -> 100 -> 0)
+    # We subtract 2 to prevent duplicate frames at the peak (100) and the loop point (0)
+    total_frames = NUM_STEPS
+
+    print(f"Starting render of {total_frames} frames for a full loop...")
+
+    for i in range(total_frames):
+        # 1. Calculate linear progress (0.0 to 1.0 for the whole animation)
+        # However, we want the 'height' to peak at the middle.
+        # 2. Apply easing to the oscillating t
+        eased_t = i / (total_frames - 1)
+
+        # 3. Calculate current height percentage
+        current_height = START_HEIGHT + (END_HEIGHT - START_HEIGHT) * eased_t
+
+        # Update environment
+        env["HEIGHT_PERCENTAGE"] = f"{current_height:.2f}"
+        env["MOVE_X_PERCENTAGE"] = f"0"
+        env["OVERRIDE_WHITE"] = f"0"
+
+        output_path = os.path.join(OUTPUT_DIR, f"{OUTPUT_PREFIX}_{i:04d}.png")
+
+        command = [
+            "python", "-m", "arkiv_cube_3d", "render",
+            "--image", INPUT_IMAGE,
+            "--output", output_path
+        ]
+
+        print(f"Frame {i:04d}/{total_frames-1} | Height: {current_height:.2f} | Dir: {'UP' if i < NUM_STEPS else 'DOWN'}")
+
+        try:
+            subprocess.run(command, env=env, check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Error at frame {i}: {e}")
+            break
+
+    print("Looping render complete!")
 
 if __name__ == "__main__":
-    main()
+    loop3()
+    loop1()
+    loop2()
