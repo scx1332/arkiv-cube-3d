@@ -49,7 +49,7 @@ def create_box_configs(pixel_grid: list[list[InputPixel]]) -> list[BoxConfig]:
 
     full_intensity_height = 3.0
 
-    height_percentage = float(os.getenv("HEIGHT_PERCENTAGE", "1.0"))
+    height_percentage = float(os.getenv("HEIGHT_PERCENTAGE", "100.0")) / 100.0
     height_percentage_limit = 0.15
 
     for pixel_x in range(len(pixel_grid[0])):
